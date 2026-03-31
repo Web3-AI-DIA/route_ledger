@@ -1,0 +1,5 @@
+{
+  "name": "RouteLedger",
+  "description": "Non-custodial cross-chain payment router built with Next.js, connecting XRPL to EVM and Solana.",
+  "requestFramePermissions": []
+}
