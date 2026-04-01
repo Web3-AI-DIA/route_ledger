@@ -12,7 +12,12 @@
   "dependencies": {
     "@google/genai": "^1.17.0",
     "@hookform/resolvers": "^5.2.1",
+    "@reown/appkit": "^1.8.19",
+    "@reown/appkit-adapter-solana": "^1.8.19",
+    "@reown/appkit-adapter-wagmi": "^1.8.19",
+    "@sentry/nextjs": "^10.47.0",
     "@solana/web3.js": "^1.98.4",
+    "@tanstack/react-query": "^5.96.0",
     "autoprefixer": "^10.4.21",
     "axios": "^1.14.0",
     "class-variance-authority": "^0.7.1",
@@ -20,6 +25,7 @@
     "date-fns": "^4.1.0",
     "ethers": "^6.16.0",
     "firebase": "^12.11.0",
+    "firebase-admin": "^13.7.0",
     "lucide-react": "^0.553.0",
     "motion": "^12.23.24",
     "next": "^15.4.9",
@@ -28,7 +34,10 @@
     "react-dom": "^19.2.1",
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0",
+    "viem": "^2.47.6",
+    "wagmi": "^3.6.0",
     "xrpl": "^4.6.0",
+    "xumm-sdk": "^1.11.2",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

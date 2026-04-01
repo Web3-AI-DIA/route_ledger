@@ -1,40 +1,56 @@
 'use client';
 
-import { useState } from 'react';
-import { Wallet, Link, Unlink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Wallet, Link, Unlink, Loader2, QrCode } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 
 export default function WalletConnect() {
   const { xrplAddress, evmAddress, solanaAddress, connectXrpl, connectEvm, connectSolana, disconnectAll } = useAppStore();
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnectingXrpl, setIsConnectingXrpl] = useState(false);
+  const [xummQrUrl, setXummQrUrl] = useState<string | null>(null);
+  const [xummNextUrl, setXummNextUrl] = useState<string | null>(null);
+  
+  const { open } = useAppKit();
+  const { address, isConnected } = useAppKitAccount();
 
-  // Simulated connection logic for MVP. 
-  // In production, this uses Xaman SDK for XRPL and Reown AppKit for EVM/Solana.
+  // Sync AppKit account to store
+  useEffect(() => {
+    if (isConnected && address) {
+      // Very basic check to see if it's an EVM or Solana address
+      if (address.startsWith('0x')) {
+        connectEvm(address);
+      } else {
+        connectSolana(address);
+      }
+    }
+  }, [isConnected, address, connectEvm, connectSolana]);
+
   const handleConnectXrpl = async () => {
-    setIsConnecting(true);
-    // Simulate Xaman connection delay
-    setTimeout(() => {
-      connectXrpl('rPVMhWBsfF9iMXYj3aAzJVkPDTFNSyWdKy');
-      setIsConnecting(false);
-    }, 1000);
-  };
-
-  const handleConnectEvm = async () => {
-    setIsConnecting(true);
-    // Simulate Reown AppKit connection delay
-    setTimeout(() => {
-      connectEvm('0x71C...976F');
-      setIsConnecting(false);
-    }, 1000);
-  };
-
-  const handleConnectSolana = async () => {
-    setIsConnecting(true);
-    // Simulate Reown AppKit connection delay
-    setTimeout(() => {
-      connectSolana('HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH');
-      setIsConnecting(false);
-    }, 1000);
+    setIsConnectingXrpl(true);
+    try {
+      const res = await fetch('/api/xumm/signin', { method: 'POST' });
+      const data = await res.json();
+      
+      if (data.qrUrl) {
+        setXummQrUrl(data.qrUrl);
+        setXummNextUrl(data.nextUrl);
+        
+        // In a real app, we'd open a websocket to `data.wsUrl` to listen for the sign-in completion.
+        // For MVP, we'll simulate a successful sign-in after 5 seconds if they click the button.
+        // Or they can scan the QR code.
+        
+        // Mocking the completion for the sake of the demo
+        setTimeout(() => {
+          connectXrpl('rPVMhWBsfF9iMXYj3aAzJVkPDTFNSyWdKy');
+          setXummQrUrl(null);
+          setIsConnectingXrpl(false);
+        }, 10000);
+      }
+    } catch (error) {
+      console.error('Failed to connect Xumm', error);
+      setIsConnectingXrpl(false);
+    }
   };
 
   return (
@@ -72,10 +88,10 @@ export default function WalletConnect() {
           {!xrplAddress ? (
             <button
               onClick={handleConnectXrpl}
-              disabled={isConnecting}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              disabled={isConnectingXrpl}
+              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              Connect Xaman
+              {isConnectingXrpl ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Connect Xaman'}
             </button>
           ) : (
             <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
@@ -84,6 +100,21 @@ export default function WalletConnect() {
             </div>
           )}
         </div>
+
+        {/* Xumm QR Code Modal (Simple inline for now) */}
+        {xummQrUrl && !xrplAddress && (
+          <div className="p-4 border border-blue-100 bg-blue-50 rounded-xl flex flex-col items-center justify-center text-center">
+            <QrCode className="w-8 h-8 text-blue-600 mb-2" />
+            <p className="text-sm font-medium text-blue-900 mb-4">Scan with Xaman App</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={xummQrUrl} alt="Xumm QR Code" className="w-48 h-48 rounded-lg shadow-sm border border-blue-200 mb-4" />
+            {xummNextUrl && (
+              <a href={xummNextUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">
+                Or click here to open Xaman
+              </a>
+            )}
+          </div>
+        )}
 
         {/* EVM Wallet */}
         <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
@@ -100,8 +131,7 @@ export default function WalletConnect() {
           </div>
           {!evmAddress ? (
             <button
-              onClick={handleConnectEvm}
-              disabled={isConnecting}
+              onClick={() => open()}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               Connect AppKit
@@ -129,8 +159,7 @@ export default function WalletConnect() {
           </div>
           {!solanaAddress ? (
             <button
-              onClick={handleConnectSolana}
-              disabled={isConnecting}
+              onClick={() => open()}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               Connect AppKit
