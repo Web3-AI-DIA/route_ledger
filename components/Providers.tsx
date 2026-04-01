@@ -5,11 +5,11 @@ import { createAppKit } from '@reown/appkit/react';
 import { mainnet, polygon, arbitrum, optimism, base, bsc, avalanche } from '@reown/appkit/networks';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { SolanaAdapter } from '@reown/appkit-adapter-solana';
-import { solana, solanaTestnet, solanaDevnet } from '@reown/appkit/networks';
+import { TronAdapter } from '@reown/appkit-adapter-tron';
+import { solana, solanaTestnet, solanaDevnet, tron, tronShasta, tronNile, AppKitNetwork } from '@reown/appkit/networks';
 import { WagmiProvider } from 'wagmi';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { AptosWalletAdapterProvider } from '@aptos-labs/wallet-adapter-react';
-import { WalletProvider as TronWalletProvider } from '@tronweb3/tronwallet-adapter-react-hooks';
 
 const queryClient = new QueryClient();
 
@@ -22,8 +22,9 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 };
 
-const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche];
-const solanaNetworks = [solana, solanaTestnet, solanaDevnet];
+const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche] as [AppKitNetwork, ...AppKitNetwork[]];
+const solanaNetworks = [solana, solanaTestnet, solanaDevnet] as [AppKitNetwork, ...AppKitNetwork[]];
+const tronNetworks = [tron, tronShasta, tronNile] as [AppKitNetwork, ...AppKitNetwork[]];
 
 const wagmiAdapter = new WagmiAdapter({
   networks: evmNetworks,
@@ -35,9 +36,11 @@ const solanaWeb3JsAdapter = new SolanaAdapter({
   wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()]
 });
 
+const tronAdapter = new TronAdapter();
+
 createAppKit({
-  adapters: [wagmiAdapter, solanaWeb3JsAdapter],
-  networks: [...evmNetworks, ...solanaNetworks],
+  adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter],
+  networks: [...evmNetworks, ...solanaNetworks, ...tronNetworks] as [AppKitNetwork, ...AppKitNetwork[]],
   projectId,
   metadata,
   features: {
@@ -50,9 +53,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <AptosWalletAdapterProvider autoConnect={true}>
-          <TronWalletProvider>
-            {children}
-          </TronWalletProvider>
+          {children}
         </AptosWalletAdapterProvider>
       </QueryClientProvider>
     </WagmiProvider>

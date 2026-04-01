@@ -10,7 +10,6 @@ export async function POST(request: Request) {
   const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
 
   try {
-    // Rate limiting
     const { success, limit, remaining, reset } = await checkRateLimit(identifier);
     if (!success) {
       logger.warn({ identifier }, 'Rate limit exceeded for Xumm sign-in');
@@ -19,9 +18,9 @@ export async function POST(request: Request) {
         {
           status: 429,
           headers: {
-            'X-RateLimit-Limit': limit.toString(),
-            'X-RateLimit-Remaining': remaining.toString(),
-            'X-RateLimit-Reset': reset.toString(),
+            'X-RateLimit-Limit': (limit ?? 0).toString(),
+            'X-RateLimit-Remaining': (remaining ?? 0).toString(),
+            'X-RateLimit-Reset': (reset ?? 0).toString(),
           },
         }
       );
@@ -29,7 +28,6 @@ export async function POST(request: Request) {
 
     if (!XUMM_API_KEY || !XUMM_API_SECRET) {
       logger.error('XUMM API keys are not set');
-      // For MVP, if keys are missing, return a mock response so the UI doesn't break
       return NextResponse.json({
         qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=mock-xumm-signin',
         nextUrl: 'https://xumm.app',

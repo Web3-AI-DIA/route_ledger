@@ -1,99 +1,78 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Wallet, Link, Unlink, Loader2, QrCode } from 'lucide-react';
-import { useAppStore } from '@/lib/store';
+import { Wallet, Unlink, Loader2, QrCode } from 'lucide-react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { useAppStore } from '@/lib/store';
 import { useWallet as useAptosWallet } from '@aptos-labs/wallet-adapter-react';
-import { useWallet as useTronWallet } from '@tronweb3/tronwallet-adapter-react-hooks';
 import { isConnected as isFreighterConnected, getAddress as getFreighterAddress } from '@stellar/freighter-api';
 
 export default function WalletConnect() {
-  const { 
-    xrplAddress, 
-    evmAddress, 
-    solanaAddress, 
-    aptosAddress, 
-    tronAddress, 
-    stellarAddress, 
-    connectXrpl, 
-    connectEvm, 
+  const { open } = useAppKit();
+  const { address: evmAddress, isConnected: isEvmConnected } = useAppKitAccount();
+
+  // AppKit also manages Solana and Tron through the same hook if configured
+  const { address: solanaAddress, isConnected: isSolanaConnected } = useAppKitAccount({ namespace: 'solana' });
+  const { address: tronAddress, isConnected: isTronConnected } = useAppKitAccount({ namespace: 'tron' });
+
+  const {
+    xrplAddress,
+    aptosAddress,
+    stellarAddress,
+    connectXrpl,
+    connectEvm,
     connectSolana,
     connectAptos,
     connectTron,
     connectStellar,
-    disconnectAll 
+    disconnectAll
   } = useAppStore();
-  
+
   const [isConnectingXrpl, setIsConnectingXrpl] = useState(false);
-  const [isConnectingStellar, setIsConnectingStellar] = useState(false);
   const [xummQrUrl, setXummQrUrl] = useState<string | null>(null);
   const [xummNextUrl, setXummNextUrl] = useState<string | null>(null);
-  
-  const { open } = useAppKit();
-  const { address: reownAddress, isConnected: isReownConnected } = useAppKitAccount();
-  
-  const { account: aptosAccount, connected: isAptosConnected } = useAptosWallet();
-  const { address: tronAddressFromWallet, connected: isTronConnected } = useTronWallet();
 
-  // Sync AppKit account to store
+  const { connected: isAptosConnected, account: aptosAccount } = useAptosWallet();
+
+  // Sync AppKit addresses to store
   useEffect(() => {
-    if (isReownConnected && reownAddress) {
-      if (reownAddress.startsWith('0x')) {
-        connectEvm(reownAddress);
-      } else if (reownAddress.length > 30) {
-        connectSolana(reownAddress);
-      }
-    }
-  }, [isReownConnected, reownAddress, connectEvm, connectSolana]);
+    if (isEvmConnected && evmAddress) connectEvm(evmAddress);
+    if (isSolanaConnected && solanaAddress) connectSolana(solanaAddress);
+    if (isTronConnected && tronAddress) connectTron(tronAddress);
+  }, [isEvmConnected, evmAddress, isSolanaConnected, solanaAddress, isTronConnected, tronAddress, connectEvm, connectSolana, connectTron]);
 
-  // Sync Aptos account
   useEffect(() => {
     if (isAptosConnected && aptosAccount?.address) {
-      connectAptos(aptosAccount.address);
+      connectAptos(aptosAccount.address.toString());
     }
   }, [isAptosConnected, aptosAccount, connectAptos]);
 
-  // Sync Tron account
-  useEffect(() => {
-    if (isTronConnected && tronAddressFromWallet) {
-      connectTron(tronAddressFromWallet);
-    }
-  }, [isTronConnected, tronAddressFromWallet, connectTron]);
-
   const handleConnectStellar = async () => {
-    setIsConnectingStellar(true);
     try {
       if (await isFreighterConnected()) {
         const address = await getFreighterAddress();
         if (address) {
-          connectStellar(address);
+          connectStellar(typeof address === 'string' ? address : address.address);
         }
       } else {
         alert('Freighter wallet not found. Please install it.');
       }
     } catch (error) {
-      console.error('Stellar connection error', error);
-    } finally {
-      setIsConnectingStellar(false);
+      console.error('Failed to connect Stellar', error);
     }
   };
 
   const handleConnectXrpl = async () => {
     setIsConnectingXrpl(true);
     try {
-      const res = await fetch('/api/xumm/signin', { method: 'POST' });
-      const data = await res.json();
+      const response = await fetch('/api/xumm/signin', { method: 'POST' });
+      const data = await response.json();
       
       if (data.qrUrl) {
         setXummQrUrl(data.qrUrl);
         setXummNextUrl(data.nextUrl);
         
-        // In a real app, we'd open a websocket to `data.wsUrl` to listen for the sign-in completion.
-        // For MVP, we'll simulate a successful sign-in after 5 seconds if they click the button.
-        // Or they can scan the QR code.
-        
-        // Mocking the completion for the sake of the demo
+        // In a real app, we'd poll for status. Here we just mock a sign-in after 10 seconds.
         setTimeout(() => {
           connectXrpl('rPVMhWBsfF9iMXYj3aAzJVkPDTFNSyWdKy');
           setXummQrUrl(null);
@@ -154,12 +133,11 @@ export default function WalletConnect() {
           )}
         </div>
 
-        {/* Xumm QR Code Modal (Simple inline for now) */}
+        {/* Xumm QR Code Modal */}
         {xummQrUrl && !xrplAddress && (
           <div className="p-4 border border-blue-100 bg-blue-50 rounded-xl flex flex-col items-center justify-center text-center">
             <QrCode className="w-8 h-8 text-blue-600 mb-2" />
             <p className="text-sm font-medium text-blue-900 mb-4">Scan with Xaman App</p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={xummQrUrl} alt="Xumm QR Code" className="w-48 h-48 rounded-lg shadow-sm border border-blue-200 mb-4" />
             {xummNextUrl && (
               <a href={xummNextUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">
@@ -212,7 +190,35 @@ export default function WalletConnect() {
           </div>
           {!solanaAddress ? (
             <button
-              onClick={() => open()}
+              onClick={() => open({ view: 'Connect' })}
+              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+            >
+              Connect AppKit
+            </button>
+          ) : (
+            <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              Connected
+            </div>
+          )}
+        </div>
+
+        {/* Tron Wallet */}
+        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <span className="text-red-600 font-bold text-sm">T</span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Tron Wallet</p>
+              <p className="text-sm text-gray-500">
+                {tronAddress ? `${tronAddress.slice(0, 6)}...${tronAddress.slice(-4)}` : 'Not connected'}
+              </p>
+            </div>
+          </div>
+          {!tronAddress ? (
+            <button
+              onClick={() => open({ view: 'Connect' })}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               Connect AppKit
@@ -240,35 +246,7 @@ export default function WalletConnect() {
           </div>
           {!aptosAddress ? (
             <button
-              onClick={() => connectAptos('0x' + 'a'.repeat(64))} // Mock connection
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
-            >
-              Connect Wallet
-            </button>
-          ) : (
-            <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              Connected
-            </div>
-          )}
-        </div>
-
-        {/* Tron Wallet */}
-        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-              <span className="text-red-600 font-bold text-sm">T</span>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Tron Wallet</p>
-              <p className="text-sm text-gray-500">
-                {tronAddress ? `${tronAddress.slice(0, 6)}...${tronAddress.slice(-4)}` : 'Not connected'}
-              </p>
-            </div>
-          </div>
-          {!tronAddress ? (
-            <button
-              onClick={() => connectTron('T' + 'r'.repeat(33))} // Mock connection
+              onClick={() => connectAptos('0x' + 'a'.repeat(64))}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               Connect Wallet
@@ -296,7 +274,7 @@ export default function WalletConnect() {
           </div>
           {!stellarAddress ? (
             <button
-              onClick={() => connectStellar('G' + 's'.repeat(55))} // Mock connection
+              onClick={handleConnectStellar}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               Connect Wallet

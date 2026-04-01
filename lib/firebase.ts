@@ -1,10 +1,9 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { TransferRequest } from './types';
 import { handleFirestoreError, OperationType } from './error-handler';
 
-// In a real application, these would be populated by AI Studio or the user's environment variables.
-// Since the automatic setup failed, we provide a placeholder config.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyPlaceholder",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "placeholder.firebaseapp.com",
@@ -14,11 +13,10 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:123456789:web:abcdef",
 };
 
-// Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// Helper to save a transfer request to Firestore
 export const saveTransferRequest = async (transfer: TransferRequest) => {
   const path = `transfers/${transfer.id}`;
   try {
@@ -28,7 +26,6 @@ export const saveTransferRequest = async (transfer: TransferRequest) => {
   }
 };
 
-// Helper to get a transfer request from Firestore
 export const getTransferRequest = async (id: string): Promise<TransferRequest | null> => {
   const path = `transfers/${id}`;
   try {
@@ -42,7 +39,6 @@ export const getTransferRequest = async (id: string): Promise<TransferRequest | 
   return null;
 };
 
-// Helper to listen to transfer updates
 export const subscribeToTransfer = (id: string, callback: (transfer: TransferRequest) => void) => {
   const path = `transfers/${id}`;
   try {
@@ -55,9 +51,8 @@ export const subscribeToTransfer = (id: string, callback: (transfer: TransferReq
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, path);
-    // Return a no-op unsubscribe function
     return () => {};
   }
 };
 
-export { db };
+export { db, auth };
