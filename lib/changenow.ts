@@ -1,4 +1,5 @@
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import { v4 as uuidv4 } from 'uuid';
 import { RouteQuote, ExecutionStep, Chain, Asset } from './types';
 
@@ -21,6 +22,45 @@ const networkMap: Record<Chain, string> = {
   SOLANA: 'sol',
 };
 
+const validateInputs = (
+  sourceAsset: Asset,
+  sourceChain: Chain,
+  destAsset: Asset,
+  destChain: Chain,
+  amount: string,
+  destAddress?: string
+) => {
+  if (!assetMap[sourceAsset]) {
+    throw new Error(`Invalid source asset: ${sourceAsset}`);
+  }
+  if (!assetMap[destAsset]) {
+    throw new Error(`Invalid destination asset: ${destAsset}`);
+  }
+  if (!networkMap[sourceChain]) {
+    throw new Error(`Invalid source chain: ${sourceChain}`);
+  }
+  if (!networkMap[destChain]) {
+    throw new Error(`Invalid destination chain: ${destChain}`);
+  }
+  if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    throw new Error('Invalid amount specified.');
+  }
+  if (destAddress && !validateAddress(destAddress, destChain)) {
+    throw new Error('Invalid destination address.');
+  }
+};
+
+const validateAddress = (address: string, chain: Chain): boolean => {
+  // Add basic validation for each chain type here
+  // This is an example for XRP. Extend as needed for other chains.
+  if (chain === 'XRPL' && !/^r[1-9A-HJ-NP-Za-km-z]{25,34}$/.test(address)) {
+    return false;
+  }
+  return true;
+};
+
+axiosRetry(axios, { retries: 3 });
+
 export const getChangeNowQuote = async (
   sourceAsset: Asset,
   sourceChain: Chain,
@@ -28,9 +68,10 @@ export const getChangeNowQuote = async (
   destChain: Chain,
   amount: string
 ): Promise<RouteQuote> => {
+  validateInputs(sourceAsset, sourceChain, destAsset, destChain, amount);
+
   try {
-    // Call our internal Next.js API route instead of ChangeNOW directly
-    const response = await axios.get('/api/quote', {
+    const response = await axios.get(process.env.NEXT_PUBLIC_CHANGE_NOW_QUOTE_API || '/api/quote', {
       params: {
         sourceAsset,
         sourceChain,
@@ -55,9 +96,10 @@ export const createChangeNowTransaction = async (
   amount: string,
   destAddress: string
 ) => {
+  validateInputs(sourceAsset, sourceChain, destAsset, destChain, amount, destAddress);
+
   try {
-    // Call our internal Next.js API route
-    const response = await axios.post('/api/transaction', {
+    const response = await axios.post(process.env.NEXT_PUBLIC_CHANGE_NOW_TRANSACTION_API || '/api/transaction', {
       sourceAsset,
       sourceChain,
       destAsset,
@@ -75,9 +117,7 @@ export const createChangeNowTransaction = async (
 
 export const getChangeNowTransactionStatus = async (txId: string) => {
   try {
-    // We could proxy this too, but for now we rely on webhooks for status updates.
-    // If we need to poll, we should create an /api/status route.
-    const response = await axios.get(`/api/status?id=${txId}`);
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_CHANGE_NOW_STATUS_API || '/api/status'}?id=${txId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching transaction status:', error);
