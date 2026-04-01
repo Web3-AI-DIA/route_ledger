@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import { QuoteRequestSchema } from '@/lib/validations';
+import { checkRateLimit } from '@/lib/ratelimit';
+import logger from '@/lib/logger';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
 const CHANGENOW_API_KEY = process.env.CHANGENOW_API_KEY;
@@ -8,6 +11,7 @@ const CHANGENOW_API_KEY = process.env.CHANGENOW_API_KEY;
 const assetMap: Record<string, string> = {
   XRP: 'xrp',
   USDC: 'usdc',
+  USDT: 'usdt',
   SOL: 'sol',
   ETH: 'eth',
   MATIC: 'matic',
@@ -18,28 +22,59 @@ const assetMap: Record<string, string> = {
 
 const networkMap: Record<string, string> = {
   XRPL: 'xrp',
-  EVM: 'eth',
+  ETHEREUM: 'eth',
+  POLYGON: 'matic',
   SOLANA: 'sol',
+  APTOS: 'apt',
+  ARBITRUM: 'arbitrum',
+  AVALANCHE: 'avax',
+  BSC: 'bsc',
+  BASE: 'base',
+  TRON: 'trx',
+  OPTIMISM: 'optimism',
+  STELLAR: 'xlm',
 };
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const sourceAsset = searchParams.get('sourceAsset');
-  const sourceChain = searchParams.get('sourceChain');
-  const destAsset = searchParams.get('destAsset');
-  const destChain = searchParams.get('destChain');
-  const amount = searchParams.get('amount');
-
-  if (!sourceAsset || !sourceChain || !destAsset || !destChain || !amount) {
-    return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  
+  // 1. Rate Limiting
+  const { success, remaining, reset } = await checkRateLimit(identifier);
+  if (!success) {
+    logger.warn({ identifier }, 'Rate limit exceeded');
+    return NextResponse.json({ error: 'Too many requests' }, { 
+      status: 429,
+      headers: {
+        'X-RateLimit-Remaining': remaining.toString(),
+        'X-RateLimit-Reset': reset.toString(),
+      }
+    });
   }
 
+  // 2. Zod Validation
+  const validation = QuoteRequestSchema.safeParse({
+    sourceAsset: searchParams.get('sourceAsset'),
+    sourceChain: searchParams.get('sourceChain'),
+    destAsset: searchParams.get('destAsset'),
+    destChain: searchParams.get('destChain'),
+    amount: searchParams.get('amount'),
+  });
+
+  if (!validation.success) {
+    logger.warn({ errors: validation.error.format() }, 'Invalid quote request');
+    return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+  }
+
+  const { sourceAsset, sourceChain, destAsset, destChain, amount } = validation.data;
+
   if (!CHANGENOW_API_KEY) {
-    console.error('CHANGENOW_API_KEY is not set');
+    logger.error('CHANGENOW_API_KEY is not set');
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
 
   try {
+    logger.info({ sourceAsset, sourceChain, destAsset, destChain, amount }, 'Fetching quote from ChangeNOW');
     const fromCurrency = assetMap[sourceAsset];
     const fromNetwork = networkMap[sourceChain];
     const toCurrency = assetMap[destAsset];
@@ -104,6 +139,7 @@ export async function GET(request: Request) {
       });
     }
 
+    logger.info({ quoteId: uuidv4() }, 'Quote generated successfully');
     return NextResponse.json({
       id: uuidv4(),
       sourceChain,
@@ -120,7 +156,7 @@ export async function GET(request: Request) {
       expiresAt: Date.now() + 5 * 60 * 1000,
     });
   } catch (error: any) {
-    console.error('Error fetching ChangeNOW quote:', error?.response?.data || error.message);
+    logger.error({ error: error?.response?.data || error.message }, 'Error fetching ChangeNOW quote');
     return NextResponse.json({ error: 'Failed to fetch route quote' }, { status: 500 });
   }
 }

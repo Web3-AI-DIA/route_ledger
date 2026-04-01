@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: transfers
+    // Document ID: uuid
+    // Fields:
+    //   - id: string (required) - Unique ID for the transfer.
+    //   - quoteId: string (required) - ID of the quote used.
+    //   - userId: string (required) - UID of the user who initiated the transfer.
+    //   - sourceAddress: string (required) - Source wallet address.
+    //   - destAddress: string (required) - Destination wallet address.
+    //   - amountIn: string (required) - Amount sent from source.
+    //   - expectedAmountOut: string (required) - Expected amount at destination.
+    //   - status: string (required, enum) - Current state of the transfer.
+    //   - createdAt: number (required) - Creation timestamp.
+    //   - updatedAt: number (required) - Last update timestamp.
+    //   - payinAddress: string (optional)
+    //   - payoutAddress: string (optional)
+    //   - txHashes: map (optional)
+    //   - error: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function uidUnchanged() {
+      return !('userId' in request.resource.data) ||
+        request.resource.data.userId == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('userId' in request.resource.data) ||
+        request.resource.data.userId == resource.data.userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidStatus(status) {
+      return status in [
+        'PENDING_XRPL_PAYMENT',
+        'XRPL_CONFIRMED',
+        'BRIDGE_IN_FLIGHT',
+        'DESTINATION_SETTLING',
+        'COMPLETED',
+        'FAILED',
+        'REFUNDED'
+      ];
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidTransfer(data) {
+      return hasRequiredFields(['id', 'quoteId', 'userId', 'sourceAddress', 'destAddress', 'amountIn', 'expectedAmountOut', 'status', 'createdAt', 'updatedAt']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.quoteId is string && data.quoteId.size() > 0 && data.quoteId.size() < 100 &&
+             data.userId is string && data.userId.size() > 0 && data.userId.size() < 100 &&
+             data.sourceAddress is string && data.sourceAddress.size() > 0 && data.sourceAddress.size() < 200 &&
+             data.destAddress is string && data.destAddress.size() > 0 && data.destAddress.size() < 200 &&
+             data.amountIn is string && data.amountIn.size() > 0 && data.amountIn.size() < 50 &&
+             data.expectedAmountOut is string && data.expectedAmountOut.size() > 0 && data.expectedAmountOut.size() < 50 &&
+             isValidStatus(data.status) &&
+             data.createdAt is number &&
+             data.updatedAt is number;
+    }
+
+    match /transfers/{transferId} {
+      // Users can only read their own transfers
+      allow read: if isDocOwner();
+      
+      // Users can only create transfers for themselves
+      allow create: if isAuthenticated() && 
+                      isValidTransfer(request.resource.data) && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Users can only update their own transfers, and cannot change the userId
+      allow update: if isDocOwner() && 
+                      isValidTransfer(request.resource.data) && 
+                      uidNotModified();
+      
+      // Deletion is not allowed for audit purposes
+      allow delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+  }
+}

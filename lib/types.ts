@@ -1,5 +1,27 @@
-export type Chain = 'XRPL' | 'EVM' | 'SOLANA';
-export type Asset = 'XRP' | 'USDC' | 'SOL' | 'ETH' | 'MATIC' | 'APT' | 'TRX' | 'XLM';
+export type Chain = 
+  | 'XRPL' 
+  | 'ETHEREUM' 
+  | 'POLYGON' 
+  | 'SOLANA' 
+  | 'APTOS' 
+  | 'ARBITRUM' 
+  | 'AVALANCHE' 
+  | 'BSC' 
+  | 'BASE' 
+  | 'TRON' 
+  | 'OPTIMISM' 
+  | 'STELLAR';
+
+export type Asset = 
+  | 'XRP' 
+  | 'USDC' 
+  | 'USDT' 
+  | 'SOL' 
+  | 'ETH' 
+  | 'MATIC' 
+  | 'APT' 
+  | 'TRX' 
+  | 'XLM';
 
 export interface RouteQuote {
   id: string;

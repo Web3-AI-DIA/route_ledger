@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
+import logger from '@/lib/logger';
 
 const CHANGENOW_WEBHOOK_SECRET = process.env.CHANGENOW_WEBHOOK_SECRET;
 
@@ -10,11 +11,12 @@ export async function POST(request: Request) {
     const bodyText = await request.text();
 
     if (!CHANGENOW_WEBHOOK_SECRET) {
-      console.error('CHANGENOW_WEBHOOK_SECRET is not set');
+      logger.error('CHANGENOW_WEBHOOK_SECRET is not set');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
     if (!signature) {
+      logger.warn('Webhook received without signature');
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
@@ -23,7 +25,7 @@ export async function POST(request: Request) {
     const expectedSignature = hmac.update(bodyText).digest('hex');
 
     if (signature !== expectedSignature) {
-      console.error('Invalid ChangeNOW webhook signature');
+      logger.warn({ signature, expectedSignature }, 'Invalid ChangeNOW webhook signature');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -31,8 +33,11 @@ export async function POST(request: Request) {
     const { id, status, payinHash, payoutHash } = payload;
 
     if (!id || !status) {
+      logger.warn({ payload }, 'Invalid payload received in webhook');
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
+
+    logger.info({ id, status }, 'Processing ChangeNOW webhook');
 
     // Map ChangeNOW status to our internal status
     let internalStatus = 'BRIDGE_IN_FLIGHT';
@@ -45,18 +50,15 @@ export async function POST(request: Request) {
     }
 
     // Find the transfer request by ChangeNOW ID
-    // Note: We need to store the ChangeNOW ID in the TransferRequest when we create it
     const transfersRef = adminDb.collection('transfers');
     const snapshot = await transfersRef.where('changeNowTxId', '==', id).get();
 
     if (snapshot.empty) {
-      console.warn(`Webhook received for unknown ChangeNOW ID: ${id}`);
-      return NextResponse.json({ message: 'Transfer not found' }, { status: 200 }); // Return 200 so ChangeNOW doesn't retry
+      logger.warn({ id }, 'Webhook received for unknown ChangeNOW ID');
+      return NextResponse.json({ message: 'Transfer not found' }, { status: 200 });
     }
 
     const doc = snapshot.docs[0];
-    const transfer = doc.data();
-
     const updateData: any = {
       status: internalStatus,
       updatedAt: Date.now(),
@@ -70,10 +72,11 @@ export async function POST(request: Request) {
     }
 
     await doc.ref.update(updateData);
+    logger.info({ transferId: doc.id, internalStatus }, 'Transfer updated via webhook');
 
     return NextResponse.json({ message: 'Webhook processed successfully' });
   } catch (error: any) {
-    console.error('Error processing ChangeNOW webhook:', error.message);
+    logger.error({ error: error.message }, 'Error processing ChangeNOW webhook');
     return NextResponse.json({ error: 'Failed to process webhook' }, { status: 500 });
   }
 }

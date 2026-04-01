@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import logger from './logger';
 
 if (!admin.apps.length) {
   try {
@@ -9,8 +10,9 @@ if (!admin.apps.length) {
         privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       }),
     });
+    logger.info('Firebase admin initialized successfully');
   } catch (error) {
-    console.error('Firebase admin initialization error', error);
+    logger.error({ error }, 'Firebase admin initialization error');
   }
 }
 

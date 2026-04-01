@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "TransferRequest": {
+      "title": "TransferRequest",
+      "description": "Represents a cross-chain transfer request.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the transfer." },
+        "quoteId": { "type": "string", "description": "ID of the quote used." },
+        "userId": { "type": "string", "description": "UID of the user who initiated the transfer." },
+        "sourceAddress": { "type": "string", "description": "Source wallet address." },
+        "destAddress": { "type": "string", "description": "Destination wallet address." },
+        "amountIn": { "type": "string", "description": "Amount sent from source." },
+        "expectedAmountOut": { "type": "string", "description": "Expected amount at destination." },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING_XRPL_PAYMENT",
+            "XRPL_CONFIRMED",
+            "BRIDGE_IN_FLIGHT",
+            "DESTINATION_SETTLING",
+            "COMPLETED",
+            "FAILED",
+            "REFUNDED"
+          ]
+        },
+        "createdAt": { "type": "number", "description": "Creation timestamp." },
+        "updatedAt": { "type": "number", "description": "Last update timestamp." },
+        "payinAddress": { "type": "string" },
+        "payoutAddress": { "type": "string" },
+        "txHashes": {
+          "type": "object",
+          "properties": {
+            "source": { "type": "string" },
+            "bridge": { "type": "string" },
+            "dest": { "type": "string" }
+          }
+        },
+        "error": { "type": "string" }
+      },
+      "required": ["id", "quoteId", "userId", "sourceAddress", "destAddress", "amountIn", "expectedAmountOut", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/transfers/{transferId}": {
+      "schema": "TransferRequest",
+      "description": "Collection of transfer requests."
+    }
+  }
+}

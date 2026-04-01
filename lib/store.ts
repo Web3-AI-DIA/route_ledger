@@ -7,9 +7,15 @@ interface AppState {
   xrplAddress: string | null;
   evmAddress: string | null;
   solanaAddress: string | null;
+  aptosAddress: string | null;
+  tronAddress: string | null;
+  stellarAddress: string | null;
   connectXrpl: (address: string) => void;
   connectEvm: (address: string) => void;
   connectSolana: (address: string) => void;
+  connectAptos: (address: string) => void;
+  connectTron: (address: string) => void;
+  connectStellar: (address: string) => void;
   disconnectAll: () => void;
 
   // Routing State
@@ -28,10 +34,23 @@ export const useAppStore = create<AppState>()(
       xrplAddress: null,
       evmAddress: null,
       solanaAddress: null,
+      aptosAddress: null,
+      tronAddress: null,
+      stellarAddress: null,
       connectXrpl: (address) => set({ xrplAddress: address }),
       connectEvm: (address) => set({ evmAddress: address }),
       connectSolana: (address) => set({ solanaAddress: address }),
-      disconnectAll: () => set({ xrplAddress: null, evmAddress: null, solanaAddress: null }),
+      connectAptos: (address) => set({ aptosAddress: address }),
+      connectTron: (address) => set({ tronAddress: address }),
+      connectStellar: (address) => set({ stellarAddress: address }),
+      disconnectAll: () => set({ 
+        xrplAddress: null, 
+        evmAddress: null, 
+        solanaAddress: null,
+        aptosAddress: null,
+        tronAddress: null,
+        stellarAddress: null
+      }),
 
       activeQuote: null,
       setActiveQuote: (quote) => set({ activeQuote: quote }),

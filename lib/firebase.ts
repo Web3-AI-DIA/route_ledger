@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { TransferRequest } from './types';
+import { handleFirestoreError, OperationType } from './error-handler';
 
 // In a real application, these would be populated by AI Studio or the user's environment variables.
 // Since the automatic setup failed, we provide a placeholder config.
@@ -19,40 +20,41 @@ const db = getFirestore(app);
 
 // Helper to save a transfer request to Firestore
 export const saveTransferRequest = async (transfer: TransferRequest) => {
+  const path = `transfers/${transfer.id}`;
   try {
     await setDoc(doc(db, 'transfers', transfer.id), transfer);
   } catch (error) {
-    console.error("Error saving transfer request to Firestore:", error);
-    // Fallback to localStorage for MVP if Firebase isn't configured properly
-    localStorage.setItem(`transfer_${transfer.id}`, JSON.stringify(transfer));
+    handleFirestoreError(error, OperationType.WRITE, path);
   }
 };
 
 // Helper to get a transfer request from Firestore
 export const getTransferRequest = async (id: string): Promise<TransferRequest | null> => {
+  const path = `transfers/${id}`;
   try {
     const docSnap = await getDoc(doc(db, 'transfers', id));
     if (docSnap.exists()) {
       return docSnap.data() as TransferRequest;
     }
   } catch (error) {
-    console.error("Error getting transfer request from Firestore:", error);
-    const local = localStorage.getItem(`transfer_${id}`);
-    if (local) return JSON.parse(local) as TransferRequest;
+    handleFirestoreError(error, OperationType.GET, path);
   }
   return null;
 };
 
 // Helper to listen to transfer updates
 export const subscribeToTransfer = (id: string, callback: (transfer: TransferRequest) => void) => {
+  const path = `transfers/${id}`;
   try {
     return onSnapshot(doc(db, 'transfers', id), (doc) => {
       if (doc.exists()) {
         callback(doc.data() as TransferRequest);
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, path);
     });
   } catch (error) {
-    console.error("Error subscribing to transfer in Firestore:", error);
+    handleFirestoreError(error, OperationType.GET, path);
     // Return a no-op unsubscribe function
     return () => {};
   }

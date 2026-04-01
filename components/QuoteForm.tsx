@@ -5,25 +5,81 @@ import { ArrowRight, ArrowDownUp, Info, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Chain, Asset } from '@/lib/types';
 import { getChangeNowQuote } from '@/lib/changenow';
+import { isValidAddress } from '@/lib/utils';
 
 const SUPPORTED_CHAINS: { id: Chain; name: string; assets: Asset[] }[] = [
   { id: 'XRPL', name: 'XRP Ledger', assets: ['XRP', 'USDC'] },
-  { id: 'EVM', name: 'EVM (Ethereum/Base)', assets: ['USDC', 'ETH', 'MATIC'] },
-  { id: 'SOLANA', name: 'Solana', assets: ['SOL', 'USDC'] },
+  { id: 'ETHEREUM', name: 'Ethereum', assets: ['ETH', 'USDC', 'USDT'] },
+  { id: 'POLYGON', name: 'Polygon', assets: ['MATIC', 'USDC', 'USDT'] },
+  { id: 'SOLANA', name: 'Solana', assets: ['SOL', 'USDC', 'USDT'] },
+  { id: 'APTOS', name: 'Aptos', assets: ['APT', 'USDC', 'USDT'] },
+  { id: 'ARBITRUM', name: 'Arbitrum', assets: ['ETH', 'USDC', 'USDT'] },
+  { id: 'AVALANCHE', name: 'Avalanche', assets: ['AVAX', 'USDC', 'USDT'] },
+  { id: 'BSC', name: 'BNB Smart Chain', assets: ['ETH', 'USDC', 'USDT'] },
+  { id: 'BASE', name: 'Base', assets: ['ETH', 'USDC', 'USDT'] },
+  { id: 'TRON', name: 'Tron', assets: ['TRX', 'USDC', 'USDT'] },
+  { id: 'OPTIMISM', name: 'Optimism', assets: ['ETH', 'USDC', 'USDT'] },
+  { id: 'STELLAR', name: 'Stellar', assets: ['XLM', 'USDC'] },
 ];
 
 export default function QuoteForm() {
-  const { xrplAddress, evmAddress, solanaAddress, setActiveQuote } = useAppStore();
+  const { 
+    xrplAddress, 
+    evmAddress, 
+    solanaAddress, 
+    aptosAddress, 
+    tronAddress, 
+    stellarAddress, 
+    setActiveQuote 
+  } = useAppStore();
   
   const [sourceChain, setSourceChain] = useState<Chain>('XRPL');
   const [sourceAsset, setSourceAsset] = useState<Asset>('XRP');
-  const [destChain, setDestChain] = useState<Chain>('EVM');
+  const [destChain, setDestChain] = useState<Chain>('ETHEREUM');
   const [destAsset, setDestAsset] = useState<Asset>('USDC');
   const [amount, setAmount] = useState<string>('');
   const [destAddress, setDestAddress] = useState<string>('');
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isSourceWalletConnected = () => {
+    switch (sourceChain) {
+      case 'XRPL': return !!xrplAddress;
+      case 'SOLANA': return !!solanaAddress;
+      case 'APTOS': return !!aptosAddress;
+      case 'TRON': return !!tronAddress;
+      case 'STELLAR': return !!stellarAddress;
+      case 'ETHEREUM':
+      case 'POLYGON':
+      case 'ARBITRUM':
+      case 'AVALANCHE':
+      case 'BSC':
+      case 'BASE':
+      case 'OPTIMISM':
+        return !!evmAddress;
+      default: return false;
+    }
+  };
+
+  const getConnectedAddress = (chain: Chain) => {
+    switch (chain) {
+      case 'XRPL': return xrplAddress;
+      case 'SOLANA': return solanaAddress;
+      case 'APTOS': return aptosAddress;
+      case 'TRON': return tronAddress;
+      case 'STELLAR': return stellarAddress;
+      case 'ETHEREUM':
+      case 'POLYGON':
+      case 'ARBITRUM':
+      case 'AVALANCHE':
+      case 'BSC':
+      case 'BASE':
+      case 'OPTIMISM':
+        return evmAddress;
+      default: return null;
+    }
+  };
 
   const handleGetQuote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +92,11 @@ export default function QuoteForm() {
 
     if (!destAddress) {
       setError('Please enter a destination address');
+      return;
+    }
+
+    if (!isValidAddress(destAddress, destChain)) {
+      setError(`Invalid ${destChain} address format`);
       return;
     }
 
@@ -177,12 +238,15 @@ export default function QuoteForm() {
               className="w-full p-3 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono text-sm"
             />
             {/* Auto-fill helper */}
-            <div className="mt-2 flex gap-2">
-              {destChain === 'EVM' && evmAddress && (
-                <button type="button" onClick={() => setDestAddress(evmAddress)} className="text-xs text-blue-600 hover:underline">Use Connected EVM Wallet</button>
-              )}
-              {destChain === 'SOLANA' && solanaAddress && (
-                <button type="button" onClick={() => setDestAddress(solanaAddress)} className="text-xs text-blue-600 hover:underline">Use Connected Solana Wallet</button>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {getConnectedAddress(destChain) && (
+                <button 
+                  type="button" 
+                  onClick={() => setDestAddress(getConnectedAddress(destChain)!)} 
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  Use Connected {destChain} Wallet
+                </button>
               )}
             </div>
           </div>
@@ -197,7 +261,7 @@ export default function QuoteForm() {
 
         <button
           type="submit"
-          disabled={isLoading || !xrplAddress}
+          disabled={isLoading || !isSourceWalletConnected()}
           className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isLoading ? (
@@ -205,8 +269,8 @@ export default function QuoteForm() {
               <Loader2 className="w-5 h-5 animate-spin" />
               Finding Best Route...
             </>
-          ) : !xrplAddress ? (
-            'Connect XRPL Wallet to Continue'
+          ) : !isSourceWalletConnected() ? (
+            `Connect ${sourceChain} Wallet to Continue`
           ) : (
             <>
               Review Route

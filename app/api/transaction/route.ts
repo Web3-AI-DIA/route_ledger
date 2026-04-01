@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { TransactionRequestSchema } from '@/lib/validations';
+import { checkRateLimit } from '@/lib/ratelimit';
+import logger from '@/lib/logger';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
 const CHANGENOW_API_KEY = process.env.CHANGENOW_API_KEY;
@@ -7,6 +10,7 @@ const CHANGENOW_API_KEY = process.env.CHANGENOW_API_KEY;
 const assetMap: Record<string, string> = {
   XRP: 'xrp',
   USDC: 'usdc',
+  USDT: 'usdt',
   SOL: 'sol',
   ETH: 'eth',
   MATIC: 'matic',
@@ -17,23 +21,53 @@ const assetMap: Record<string, string> = {
 
 const networkMap: Record<string, string> = {
   XRPL: 'xrp',
-  EVM: 'eth',
+  ETHEREUM: 'eth',
+  POLYGON: 'matic',
   SOLANA: 'sol',
+  APTOS: 'apt',
+  ARBITRUM: 'arbitrum',
+  AVALANCHE: 'avax',
+  BSC: 'bsc',
+  BASE: 'base',
+  TRON: 'trx',
+  OPTIMISM: 'optimism',
+  STELLAR: 'xlm',
 };
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { sourceAsset, sourceChain, destAsset, destChain, amount, destAddress } = body;
+  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
 
-    if (!sourceAsset || !sourceChain || !destAsset || !destChain || !amount || !destAddress) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+  try {
+    // 1. Rate Limiting
+    const { success, remaining, reset } = await checkRateLimit(identifier);
+    if (!success) {
+      logger.warn({ identifier }, 'Rate limit exceeded for transaction');
+      return NextResponse.json({ error: 'Too many requests' }, { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Reset': reset.toString(),
+        }
+      });
     }
+
+    // 2. Zod Validation
+    const body = await request.json();
+    const validation = TransactionRequestSchema.safeParse(body);
+
+    if (!validation.success) {
+      logger.warn({ errors: validation.error.format() }, 'Invalid transaction request');
+      return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+    }
+
+    const { sourceAsset, sourceChain, destAsset, destChain, amount, destAddress } = validation.data;
 
     if (!CHANGENOW_API_KEY) {
-      console.error('CHANGENOW_API_KEY is not set');
+      logger.error('CHANGENOW_API_KEY is not set');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
+
+    logger.info({ sourceAsset, sourceChain, destAsset, destChain, amount, destAddress }, 'Creating ChangeNOW transaction');
 
     const fromCurrency = assetMap[sourceAsset];
     const fromNetwork = networkMap[sourceChain];
@@ -60,9 +94,10 @@ export async function POST(request: Request) {
       }
     );
 
+    logger.info({ transactionId: response.data.id }, 'ChangeNOW transaction created successfully');
     return NextResponse.json(response.data);
   } catch (error: any) {
-    console.error('Error creating ChangeNOW transaction:', error?.response?.data || error.message);
+    logger.error({ error: error?.response?.data || error.message }, 'Error creating ChangeNOW transaction');
     return NextResponse.json({ error: 'Failed to create cross-chain transaction' }, { status: 500 });
   }
 }

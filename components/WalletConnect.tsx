@@ -4,27 +4,80 @@ import { useState, useEffect } from 'react';
 import { Wallet, Link, Unlink, Loader2, QrCode } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { useWallet as useAptosWallet } from '@aptos-labs/wallet-adapter-react';
+import { useWallet as useTronWallet } from '@tronweb3/tronwallet-adapter-react-hooks';
+import { isConnected as isFreighterConnected, getAddress as getFreighterAddress } from '@stellar/freighter-api';
 
 export default function WalletConnect() {
-  const { xrplAddress, evmAddress, solanaAddress, connectXrpl, connectEvm, connectSolana, disconnectAll } = useAppStore();
+  const { 
+    xrplAddress, 
+    evmAddress, 
+    solanaAddress, 
+    aptosAddress, 
+    tronAddress, 
+    stellarAddress, 
+    connectXrpl, 
+    connectEvm, 
+    connectSolana,
+    connectAptos,
+    connectTron,
+    connectStellar,
+    disconnectAll 
+  } = useAppStore();
+  
   const [isConnectingXrpl, setIsConnectingXrpl] = useState(false);
+  const [isConnectingStellar, setIsConnectingStellar] = useState(false);
   const [xummQrUrl, setXummQrUrl] = useState<string | null>(null);
   const [xummNextUrl, setXummNextUrl] = useState<string | null>(null);
   
   const { open } = useAppKit();
-  const { address, isConnected } = useAppKitAccount();
+  const { address: reownAddress, isConnected: isReownConnected } = useAppKitAccount();
+  
+  const { account: aptosAccount, connected: isAptosConnected } = useAptosWallet();
+  const { address: tronAddressFromWallet, connected: isTronConnected } = useTronWallet();
 
   // Sync AppKit account to store
   useEffect(() => {
-    if (isConnected && address) {
-      // Very basic check to see if it's an EVM or Solana address
-      if (address.startsWith('0x')) {
-        connectEvm(address);
-      } else {
-        connectSolana(address);
+    if (isReownConnected && reownAddress) {
+      if (reownAddress.startsWith('0x')) {
+        connectEvm(reownAddress);
+      } else if (reownAddress.length > 30) {
+        connectSolana(reownAddress);
       }
     }
-  }, [isConnected, address, connectEvm, connectSolana]);
+  }, [isReownConnected, reownAddress, connectEvm, connectSolana]);
+
+  // Sync Aptos account
+  useEffect(() => {
+    if (isAptosConnected && aptosAccount?.address) {
+      connectAptos(aptosAccount.address);
+    }
+  }, [isAptosConnected, aptosAccount, connectAptos]);
+
+  // Sync Tron account
+  useEffect(() => {
+    if (isTronConnected && tronAddressFromWallet) {
+      connectTron(tronAddressFromWallet);
+    }
+  }, [isTronConnected, tronAddressFromWallet, connectTron]);
+
+  const handleConnectStellar = async () => {
+    setIsConnectingStellar(true);
+    try {
+      if (await isFreighterConnected()) {
+        const address = await getFreighterAddress();
+        if (address) {
+          connectStellar(address);
+        }
+      } else {
+        alert('Freighter wallet not found. Please install it.');
+      }
+    } catch (error) {
+      console.error('Stellar connection error', error);
+    } finally {
+      setIsConnectingStellar(false);
+    }
+  };
 
   const handleConnectXrpl = async () => {
     setIsConnectingXrpl(true);
@@ -60,7 +113,7 @@ export default function WalletConnect() {
           <Wallet className="w-5 h-5 text-blue-600" />
           Connected Wallets
         </h2>
-        {(xrplAddress || evmAddress || solanaAddress) && (
+        {(xrplAddress || evmAddress || solanaAddress || aptosAddress || tronAddress || stellarAddress) && (
           <button
             onClick={disconnectAll}
             className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
@@ -163,6 +216,90 @@ export default function WalletConnect() {
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               Connect AppKit
+            </button>
+          ) : (
+            <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              Connected
+            </div>
+          )}
+        </div>
+
+        {/* Aptos Wallet */}
+        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+              <span className="text-teal-600 font-bold text-sm">A</span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Aptos Wallet</p>
+              <p className="text-sm text-gray-500">
+                {aptosAddress ? `${aptosAddress.slice(0, 6)}...${aptosAddress.slice(-4)}` : 'Not connected'}
+              </p>
+            </div>
+          </div>
+          {!aptosAddress ? (
+            <button
+              onClick={() => connectAptos('0x' + 'a'.repeat(64))} // Mock connection
+              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+            >
+              Connect Wallet
+            </button>
+          ) : (
+            <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              Connected
+            </div>
+          )}
+        </div>
+
+        {/* Tron Wallet */}
+        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <span className="text-red-600 font-bold text-sm">T</span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Tron Wallet</p>
+              <p className="text-sm text-gray-500">
+                {tronAddress ? `${tronAddress.slice(0, 6)}...${tronAddress.slice(-4)}` : 'Not connected'}
+              </p>
+            </div>
+          </div>
+          {!tronAddress ? (
+            <button
+              onClick={() => connectTron('T' + 'r'.repeat(33))} // Mock connection
+              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+            >
+              Connect Wallet
+            </button>
+          ) : (
+            <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              Connected
+            </div>
+          )}
+        </div>
+
+        {/* Stellar Wallet */}
+        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+              <span className="text-gray-600 font-bold text-sm">L</span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Stellar Wallet</p>
+              <p className="text-sm text-gray-500">
+                {stellarAddress ? `${stellarAddress.slice(0, 6)}...${stellarAddress.slice(-4)}` : 'Not connected'}
+              </p>
+            </div>
+          </div>
+          {!stellarAddress ? (
+            <button
+              onClick={() => connectStellar('G' + 's'.repeat(55))} // Mock connection
+              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+            >
+              Connect Wallet
             </button>
           ) : (
             <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">

@@ -38,14 +38,22 @@ export default function Home() {
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-lg">
               <h1 className="text-3xl font-bold mb-4 leading-tight">Cross-Chain Routing Made Simple.</h1>
               <p className="text-blue-100 mb-6 text-sm leading-relaxed">
-                Send assets from XRPL to EVM or Solana in one step. We abstract away bridges, swaps, and routing complexity.
+                Route assets across XRPL, Ethereum, Polygon, Solana, Arbitrum, Avalanche, and BSC in one step. We abstract away bridges, swaps, and routing complexity.
               </p>
-              <div className="flex items-center gap-2 text-xs font-medium text-blue-200 uppercase tracking-wider">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-blue-200 uppercase tracking-wider">
                 <span>XRPL</span>
                 <span className="w-1 h-1 bg-blue-300 rounded-full" />
-                <span>EVM</span>
+                <span>Ethereum</span>
+                <span className="w-1 h-1 bg-blue-300 rounded-full" />
+                <span>Polygon</span>
                 <span className="w-1 h-1 bg-blue-300 rounded-full" />
                 <span>Solana</span>
+                <span className="w-1 h-1 bg-blue-300 rounded-full" />
+                <span>Arbitrum</span>
+                <span className="w-1 h-1 bg-blue-300 rounded-full" />
+                <span>Avalanche</span>
+                <span className="w-1 h-1 bg-blue-300 rounded-full" />
+                <span>BSC</span>
               </div>
             </div>
 
