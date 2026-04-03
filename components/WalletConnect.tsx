@@ -36,6 +36,8 @@ export default function WalletConnect() {
   const { account: aptosAccount, connected: isAptosConnected } = useAptosWallet();
   const { address: tronAddressFromWallet, connected: isTronConnected } = useTronWallet();
 
+  const aptosAddressValue = aptosAccount?.address;
+
   // Sync AppKit account to store
   useEffect(() => {
     if (isReownConnected && reownAddress) {
@@ -49,10 +51,10 @@ export default function WalletConnect() {
 
   // Sync Aptos account
   useEffect(() => {
-    if (isAptosConnected && aptosAccount?.address) {
-      connectAptos(aptosAccount.address);
+    if (isAptosConnected && aptosAddressValue) {
+      connectAptos(aptosAddressValue);
     }
-  }, [isAptosConnected, aptosAccount, connectAptos]);
+  }, [isAptosConnected, aptosAddressValue, connectAptos]);
 
   // Sync Tron account
   useEffect(() => {
