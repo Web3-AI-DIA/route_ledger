@@ -21,7 +21,8 @@ export type Asset =
   | 'MATIC' 
   | 'APT' 
   | 'TRX' 
-  | 'XLM';
+  | 'XLM'
+  | 'AVAX';
 
 export interface RouteQuote {
   id: string;
@@ -31,7 +32,7 @@ export interface RouteQuote {
   destAsset: Asset;
   amountIn: string;
   estimatedAmountOut: string;
-  routingFee: string; // 0.1% - 0.3%
+  routingFee: string;
   networkFee: string;
   totalFee: string;
   estimatedTimeMinutes: number;
@@ -43,7 +44,7 @@ export interface ExecutionStep {
   id: string;
   type: 'SWAP' | 'BRIDGE' | 'SETTLE';
   description: string;
-  provider: string; // e.g., 'ChangeNOW', 'Jupiter', 'Uniswap'
+  provider: string;
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
   txHash?: string;
 }
@@ -68,8 +69,8 @@ export interface TransferRequest {
   status: TransferState;
   createdAt: number;
   updatedAt: number;
-  payinAddress?: string; // Address to send funds to (ChangeNOW)
-  payoutAddress?: string; // Final destination
+  payinAddress?: string;
+  payoutAddress?: string;
   txHashes: {
     source?: string;
     bridge?: string;

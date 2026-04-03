@@ -12,7 +12,6 @@ import { solana, solanaTestnet, solanaDevnet, bitcoin, ton } from '@reown/appkit
 import { WagmiProvider } from 'wagmi';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { AptosWalletAdapterProvider } from '@aptos-labs/wallet-adapter-react';
-import { WalletProvider as TronWalletProvider } from '@tronweb3/tronwallet-adapter-react-hooks';
 
 const queryClient = new QueryClient();
 
@@ -78,9 +77,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <AptosWalletAdapterProvider autoConnect={true}>
-          <TronWalletProvider>
-            {children}
-          </TronWalletProvider>
+          {children}
         </AptosWalletAdapterProvider>
       </QueryClientProvider>
     </WagmiProvider>

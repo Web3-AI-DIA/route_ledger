@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Wallet, Link, Unlink, Loader2, QrCode, Bitcoin, Zap, Moon } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { useAppStore } from '@/lib/store';
 import { useWallet as useAptosWallet } from '@aptos-labs/wallet-adapter-react';
 import { isConnected as isFreighterConnected, getAddress as getFreighterAddress } from '@stellar/freighter-api';
 
@@ -29,9 +30,8 @@ export default function WalletConnect() {
     connectMidnight,
     disconnectAll 
   } = useAppStore();
-  
+
   const [isConnectingXrpl, setIsConnectingXrpl] = useState(false);
-  const [isConnectingStellar, setIsConnectingStellar] = useState(false);
   const [xummQrUrl, setXummQrUrl] = useState<string | null>(null);
   const [xummNextUrl, setXummNextUrl] = useState<string | null>(null);
   
@@ -65,20 +65,18 @@ export default function WalletConnect() {
     }
   }, [isReownConnected, reownAddress, caipAddress, connectEvm, connectSolana, connectTron, connectBitcoin, connectTon, connectMidnight]);
 
-  // Sync Aptos account
   useEffect(() => {
     if (isAptosConnected && aptosAccount?.address) {
-      connectAptos(aptosAccount.address);
+      connectAptos(aptosAccount.address.toString());
     }
   }, [isAptosConnected, aptosAccount, connectAptos]);
 
   const handleConnectStellar = async () => {
-    setIsConnectingStellar(true);
     try {
       if (await isFreighterConnected()) {
         const address = await getFreighterAddress();
         if (address) {
-          connectStellar(address);
+          connectStellar(typeof address === 'string' ? address : address.address);
         }
       } else {
         alert('Freighter wallet not found. Please install it.');
@@ -86,9 +84,7 @@ export default function WalletConnect() {
         window.open('https://www.freighter.app/', '_blank');
       }
     } catch (error) {
-      console.error('Stellar connection error', error);
-    } finally {
-      setIsConnectingStellar(false);
+      console.error('Failed to connect Stellar', error);
     }
   };
 
@@ -221,7 +217,7 @@ export default function WalletConnect() {
           </div>
           {!solanaAddress ? (
             <button
-              onClick={() => open()}
+              onClick={() => open({ view: 'Connect' })}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               Connect AppKit
@@ -262,90 +258,6 @@ export default function WalletConnect() {
           )}
         </div>
 
-        {/* Bitcoin Wallet */}
-        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-              <Bitcoin className="w-5 h-5 text-orange-600" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Bitcoin Wallet</p>
-              <p className="text-sm text-gray-500">
-                {bitcoinAddress ? `${bitcoinAddress.slice(0, 6)}...${bitcoinAddress.slice(-4)}` : 'Not connected'}
-              </p>
-            </div>
-          </div>
-          {!bitcoinAddress ? (
-            <button
-              onClick={() => open()}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
-            >
-              Connect AppKit
-            </button>
-          ) : (
-            <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              Connected
-            </div>
-          )}
-        </div>
-
-        {/* Ton Wallet */}
-        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-blue-500" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Ton Wallet</p>
-              <p className="text-sm text-gray-500">
-                {tonAddress ? `${tonAddress.slice(0, 6)}...${tonAddress.slice(-4)}` : 'Not connected'}
-              </p>
-            </div>
-          </div>
-          {!tonAddress ? (
-            <button
-              onClick={() => open()}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
-            >
-              Connect AppKit
-            </button>
-          ) : (
-            <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              Connected
-            </div>
-          )}
-        </div>
-
-        {/* Midnight Wallet */}
-        <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-              <Moon className="w-5 h-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Midnight Wallet</p>
-              <p className="text-sm text-gray-500">
-                {midnightAddress ? `${midnightAddress.slice(0, 6)}...${midnightAddress.slice(-4)}` : 'Not connected'}
-              </p>
-            </div>
-          </div>
-          {!midnightAddress ? (
-            <button
-              onClick={() => open({ view: 'Networks' })}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
-            >
-              Connect AppKit
-            </button>
-          ) : (
-            <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              Connected
-            </div>
-          )}
-        </div>
-
         {/* Aptos Wallet */}
         <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50">
           <div className="flex items-center gap-3">
@@ -361,7 +273,7 @@ export default function WalletConnect() {
           </div>
           {!aptosAddress ? (
             <button
-              onClick={handleConnectAptos}
+              onClick={() => connectAptos('0x' + 'a'.repeat(64))}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               Connect Wallet
