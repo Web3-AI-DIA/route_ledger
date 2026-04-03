@@ -6,7 +6,9 @@ import { mainnet, polygon, arbitrum, optimism, base, bsc, avalanche } from '@reo
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { SolanaAdapter } from '@reown/appkit-adapter-solana';
 import { TronAdapter } from '@reown/appkit-adapter-tron';
-import { solana, solanaTestnet, solanaDevnet, tron, tronShasta, tronNile, AppKitNetwork } from '@reown/appkit/networks';
+import { BitcoinAdapter } from '@reown/appkit-adapter-bitcoin';
+import { TonAdapter } from '@reown/appkit-adapter-ton';
+import { solana, solanaTestnet, solanaDevnet, bitcoin, ton } from '@reown/appkit/networks';
 import { WagmiProvider } from 'wagmi';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { AptosWalletAdapterProvider } from '@aptos-labs/wallet-adapter-react';
@@ -18,13 +20,31 @@ const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'YOUR_REOWN_PROJEC
 const metadata = {
   name: 'RouteLedger',
   description: 'Non-custodial cross-chain payment router',
-  url: 'https://routeledger.app', // origin must match your domain & subdomain
+  url: 'https://routeledger.app',
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 };
 
-const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche] as [AppKitNetwork, ...AppKitNetwork[]];
-const solanaNetworks = [solana, solanaTestnet, solanaDevnet] as [AppKitNetwork, ...AppKitNetwork[]];
-const tronNetworks = [tron, tronShasta, tronNile] as [AppKitNetwork, ...AppKitNetwork[]];
+const midnight = {
+  id: 'midnight-testnet',
+  name: 'Midnight Testnet',
+  network: 'midnight-testnet',
+  nativeCurrency: {
+    decimals: 6,
+    name: 'Dust',
+    symbol: 'DUST',
+  },
+  rpcUrls: {
+    default: { http: ['https://rpc.testnet.midnight.network'] },
+    public: { http: ['https://rpc.testnet.midnight.network'] },
+  },
+  blockExplorers: {
+    default: { name: 'MidnightScan', url: 'https://explorer.testnet.midnight.network' },
+  },
+  testnet: true,
+} as const;
+
+const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche, midnight];
+const solanaNetworks = [solana, solanaTestnet, solanaDevnet];
 
 const wagmiAdapter = new WagmiAdapter({
   networks: evmNetworks,
@@ -37,16 +57,20 @@ const solanaWeb3JsAdapter = new SolanaAdapter({
 });
 
 const tronAdapter = new TronAdapter();
+const bitcoinAdapter = new BitcoinAdapter();
+const tonAdapter = new TonAdapter();
 
-createAppKit({
-  adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter],
-  networks: [...evmNetworks, ...solanaNetworks, ...tronNetworks] as [AppKitNetwork, ...AppKitNetwork[]],
-  projectId,
-  metadata,
-  features: {
-    analytics: true
-  }
-});
+if (typeof window !== 'undefined') {
+  createAppKit({
+    adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter, bitcoinAdapter, tonAdapter],
+    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton],
+    projectId,
+    metadata,
+    features: {
+      analytics: true
+    }
+  });
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
