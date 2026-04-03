@@ -5,7 +5,10 @@ import { createAppKit } from '@reown/appkit/react';
 import { mainnet, polygon, arbitrum, optimism, base, bsc, avalanche } from '@reown/appkit/networks';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { SolanaAdapter } from '@reown/appkit-adapter-solana';
-import { solana, solanaTestnet, solanaDevnet } from '@reown/appkit/networks';
+import { TronAdapter } from '@reown/appkit-adapter-tron';
+import { BitcoinAdapter } from '@reown/appkit-adapter-bitcoin';
+import { TonAdapter } from '@reown/appkit-adapter-ton';
+import { solana, solanaTestnet, solanaDevnet, bitcoin, ton } from '@reown/appkit/networks';
 import { WagmiProvider } from 'wagmi';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { AptosWalletAdapterProvider } from '@aptos-labs/wallet-adapter-react';
@@ -18,11 +21,30 @@ const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'YOUR_REOWN_PROJEC
 const metadata = {
   name: 'RouteLedger',
   description: 'Non-custodial cross-chain payment router',
-  url: 'https://routeledger.app', // origin must match your domain & subdomain
+  url: 'https://routeledger.app',
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 };
 
-const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche];
+const midnight = {
+  id: 'midnight-testnet',
+  name: 'Midnight Testnet',
+  network: 'midnight-testnet',
+  nativeCurrency: {
+    decimals: 6,
+    name: 'Dust',
+    symbol: 'DUST',
+  },
+  rpcUrls: {
+    default: { http: ['https://rpc.testnet.midnight.network'] },
+    public: { http: ['https://rpc.testnet.midnight.network'] },
+  },
+  blockExplorers: {
+    default: { name: 'MidnightScan', url: 'https://explorer.testnet.midnight.network' },
+  },
+  testnet: true,
+} as const;
+
+const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche, midnight];
 const solanaNetworks = [solana, solanaTestnet, solanaDevnet];
 
 const wagmiAdapter = new WagmiAdapter({
@@ -35,15 +57,21 @@ const solanaWeb3JsAdapter = new SolanaAdapter({
   wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()]
 });
 
-createAppKit({
-  adapters: [wagmiAdapter, solanaWeb3JsAdapter],
-  networks: [...evmNetworks, ...solanaNetworks],
-  projectId,
-  metadata,
-  features: {
-    analytics: true
-  }
-});
+const tronAdapter = new TronAdapter();
+const bitcoinAdapter = new BitcoinAdapter();
+const tonAdapter = new TonAdapter();
+
+if (typeof window !== 'undefined') {
+  createAppKit({
+    adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter, bitcoinAdapter, tonAdapter],
+    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton],
+    projectId,
+    metadata,
+    features: {
+      analytics: true
+    }
+  });
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
