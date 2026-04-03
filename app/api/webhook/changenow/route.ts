@@ -20,12 +20,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
-    // Verify signature
+    // Verify signature using timing-safe comparison
     const hmac = crypto.createHmac('sha512', CHANGENOW_WEBHOOK_SECRET);
     const expectedSignature = hmac.update(bodyText).digest('hex');
 
-    if (signature !== expectedSignature) {
-      logger.warn({ signature, expectedSignature }, 'Invalid ChangeNOW webhook signature');
+    const signatureBuffer = Buffer.from(signature, 'hex');
+    const expectedSignatureBuffer = Buffer.from(expectedSignature, 'hex');
+
+    if (
+      signatureBuffer.length !== expectedSignatureBuffer.length ||
+      !crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
+    ) {
+      logger.warn({ signature }, 'Invalid ChangeNOW webhook signature');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -77,6 +83,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Webhook processed successfully' });
   } catch (error: any) {
     logger.error({ error: error.message }, 'Error processing ChangeNOW webhook');
-    return NextResponse.json({ error: 'Failed to process webhook' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
