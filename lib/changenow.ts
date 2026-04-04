@@ -13,13 +13,23 @@ const assetMap: Record<Asset, string> = {
   APT: 'apt',
   TRX: 'trx',
   XLM: 'xlm',
+  USDT: 'usdt',
 };
 
 // Map our internal chains to ChangeNOW networks
-const networkMap: Record<Chain, string> = {
+const networkMap: Partial<Record<Chain, string>> = {
   XRPL: 'xrp',
-  EVM: 'eth', // Defaulting to Ethereum for EVM, can be dynamic (e.g., 'bsc', 'matic', 'base')
+  ETHEREUM: 'eth',
   SOLANA: 'sol',
+  POLYGON: 'matic',
+  ARBITRUM: 'arbitrum',
+  OPTIMISM: 'optimism',
+  BASE: 'base',
+  BSC: 'bsc',
+  AVALANCHE: 'avax',
+  APTOS: 'apt',
+  TRON: 'trx',
+  STELLAR: 'xlm',
 };
 
 const validateInputs = (

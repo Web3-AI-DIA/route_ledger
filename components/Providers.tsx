@@ -37,7 +37,7 @@ const solanaWeb3JsAdapter = new SolanaAdapter({
 
 createAppKit({
   adapters: [wagmiAdapter, solanaWeb3JsAdapter],
-  networks: [...evmNetworks, ...solanaNetworks],
+  networks: [...evmNetworks, ...solanaNetworks] as [any, ...any[]],
   projectId,
   metadata,
   features: {

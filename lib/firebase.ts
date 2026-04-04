@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { TransferRequest } from './types';
 import { handleFirestoreError, OperationType } from './error-handler';
 
@@ -17,6 +18,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 // Helper to save a transfer request to Firestore
 export const saveTransferRequest = async (transfer: TransferRequest) => {
@@ -60,4 +62,4 @@ export const subscribeToTransfer = (id: string, callback: (transfer: TransferReq
   }
 };
 
-export { db };
+export { db, auth };
