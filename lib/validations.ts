@@ -81,3 +81,9 @@ export const TransactionRequestSchema = z.object({
   amount: z.string().regex(/^\d+(\.\d+)?$/, 'Invalid amount format'),
   destAddress: z.string().min(1, 'Destination address is required'),
 });
+
+export const XummPayloadSchema = z.object({
+  amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid XRP amount format (max 6 decimal places)'),
+  destination: z.string().min(1, 'Destination address is required'),
+  memo: z.string().optional(),
+});
