@@ -3,6 +3,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { QuoteRequestSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { Redis } from '@upstash/redis';
 import logger from '@/lib/logger';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
@@ -34,6 +35,10 @@ const networkMap: Record<string, string> = {
   OPTIMISM: 'optimism',
   STELLAR: 'xlm',
 };
+
+// Simple in-memory cache for fallback
+const localCache = new Map<string, { data: any; expiresAt: number }>();
+const CACHE_TTL = 10; // 10 seconds
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -71,6 +76,29 @@ export async function GET(request: Request) {
   if (!CHANGENOW_API_KEY) {
     logger.error('CHANGENOW_API_KEY is not set');
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
+  // 3. Cache Check
+  const cacheKey = `quote:${sourceAsset}:${sourceChain}:${destAsset}:${destChain}:${amount}`;
+  let cachedData: any = null;
+
+  try {
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      const redis = Redis.fromEnv();
+      cachedData = await redis.get(cacheKey);
+    } else {
+      const localEntry = localCache.get(cacheKey);
+      if (localEntry && localEntry.expiresAt > Date.now()) {
+        cachedData = localEntry.data;
+      }
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Cache read error, proceeding without cache');
+  }
+
+  if (cachedData) {
+    logger.info({ cacheKey }, 'Serving quote from cache');
+    return NextResponse.json({ ...cachedData, fromCache: true });
   }
 
   try {
@@ -139,8 +167,7 @@ export async function GET(request: Request) {
       });
     }
 
-    logger.info({ quoteId: uuidv4() }, 'Quote generated successfully');
-    return NextResponse.json({
+    const quoteResponse = {
       id: uuidv4(),
       sourceChain,
       sourceAsset,
@@ -154,7 +181,25 @@ export async function GET(request: Request) {
       estimatedTimeMinutes: transactionSpeedForecast ? Math.ceil(transactionSpeedForecast / 60) : 10,
       steps,
       expiresAt: Date.now() + 5 * 60 * 1000,
-    });
+    };
+
+    // 4. Cache Store
+    try {
+      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        const redis = Redis.fromEnv();
+        await redis.set(cacheKey, quoteResponse, { ex: CACHE_TTL });
+      } else {
+        localCache.set(cacheKey, {
+          data: quoteResponse,
+          expiresAt: Date.now() + CACHE_TTL * 1000,
+        });
+      }
+    } catch (err) {
+      logger.warn({ err }, 'Cache write error');
+    }
+
+    logger.info({ quoteId: quoteResponse.id }, 'Quote generated and cached successfully');
+    return NextResponse.json(quoteResponse);
   } catch (error: any) {
     logger.error({ error: error?.response?.data || error.message }, 'Error fetching ChangeNOW quote');
     return NextResponse.json({ error: 'Failed to fetch route quote' }, { status: 500 });
