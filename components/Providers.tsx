@@ -25,7 +25,7 @@ const metadata = {
 };
 
 const midnight = {
-  id: 'midnight-testnet',
+  id: 400,
   name: 'Midnight Testnet',
   network: 'midnight-testnet',
   nativeCurrency: {
@@ -41,7 +41,9 @@ const midnight = {
     default: { name: 'MidnightScan', url: 'https://explorer.testnet.midnight.network' },
   },
   testnet: true,
-} as const;
+  chainNamespace: 'eip155',
+  caipNetworkId: 'eip155:400',
+} as any;
 
 const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche, midnight];
 const solanaNetworks = [solana, solanaTestnet, solanaDevnet];
@@ -61,15 +63,19 @@ const bitcoinAdapter = new BitcoinAdapter();
 const tonAdapter = new TonAdapter();
 
 if (typeof window !== 'undefined') {
-  createAppKit({
-    adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter, bitcoinAdapter, tonAdapter],
-    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton],
-    projectId,
-    metadata,
-    features: {
-      analytics: true
-    }
-  });
+  try {
+    createAppKit({
+      adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter, bitcoinAdapter, tonAdapter],
+      networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton] as any,
+      projectId,
+      metadata,
+      features: {
+        analytics: true,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to initialize AppKit:', err);
+  }
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
