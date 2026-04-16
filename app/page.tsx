@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import WalletConnect from '@/components/WalletConnect';
 import QuoteForm from '@/components/QuoteForm';
@@ -9,6 +10,15 @@ import { Layers } from 'lucide-react';
 
 export default function Home() {
   const { activeQuote, activeTransfer } = useAppStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">

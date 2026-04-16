@@ -25,7 +25,7 @@ const metadata = {
 };
 
 const midnight = {
-  id: 'midnight-testnet',
+  id: 400,
   name: 'Midnight Testnet',
   network: 'midnight-testnet',
   nativeCurrency: {
@@ -41,9 +41,11 @@ const midnight = {
     default: { name: 'MidnightScan', url: 'https://explorer.testnet.midnight.network' },
   },
   testnet: true,
-} as const;
+  chainNamespace: 'eip155' as const,
+  caipNetworkId: 'eip155:400' as const,
+};
 
-const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche, midnight];
+const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche, midnight as any];
 const solanaNetworks = [solana, solanaTestnet, solanaDevnet];
 
 const wagmiAdapter = new WagmiAdapter({
@@ -63,7 +65,7 @@ const tonAdapter = new TonAdapter();
 if (typeof window !== 'undefined') {
   createAppKit({
     adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter, bitcoinAdapter, tonAdapter],
-    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton],
+    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton] as any,
     projectId,
     metadata,
     features: {
