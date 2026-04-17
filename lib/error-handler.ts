@@ -15,11 +15,11 @@ interface FirestoreErrorInfo {
   path: string | null;
   authInfo: {
     userId: string | undefined;
-    email: string | null | undefined;
+    email?: string | null | undefined;
     emailVerified: boolean | undefined;
     isAnonymous: boolean | undefined;
     tenantId: string | null | undefined;
-    providerInfo: {
+    providerInfo?: {
       providerId: string;
       displayName: string | null;
       email: string | null;
@@ -28,25 +28,37 @@ interface FirestoreErrorInfo {
   }
 }
 
+/**
+ * Handles Firestore errors by logging them securely and throwing a sanitized error message.
+ * Sanitizes PII (email, providerInfo) in browser environments to prevent accidental leakage.
+ */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const isBrowser = typeof window !== 'undefined';
+
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      // Sanitize PII in the browser console
+      email: isBrowser ? undefined : auth.currentUser?.email,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
+      // Sanitize PII in the browser console
+      providerInfo: isBrowser ? undefined : auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
         displayName: provider.displayName,
         email: provider.email,
         photoUrl: provider.photoURL
-      })) || []
+      }))
     },
     operationType,
     path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  };
+
+  // Log structured error for developers (sanitized if in browser)
+  console.error('Firestore Error:', JSON.stringify(errInfo));
+
+  // Throw a generic error message to prevent leaking internal database/auth details to the UI
+  throw new Error('An error occurred while processing the request.');
 }

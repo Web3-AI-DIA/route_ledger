@@ -23,7 +23,7 @@ if (!admin.apps.length) {
       logger.info('Firebase admin initialized with dummy project ID for build');
     }
   } catch (error) {
-    logger.error({ error }, 'Firebase admin initialization error');
+    logger.error({ err: error }, 'Firebase admin initialization error');
     if (!admin.apps.length) {
       admin.initializeApp({ projectId: 'dummy-project' });
     }

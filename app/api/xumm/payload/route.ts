@@ -38,11 +38,15 @@ export async function POST(request: Request) {
     if (!XUMM_API_KEY || !XUMM_API_SECRET) {
       logger.error('XUMM API keys are not set');
       // For MVP, if keys are missing, return a mock response so the UI doesn't break
-      return NextResponse.json({
-        qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=mock-xumm-payload',
-        nextUrl: 'https://xumm.app',
-        uuid: 'mock-uuid'
-      });
+      // This is ONLY allowed in non-production environments
+      if (process.env.NODE_ENV !== 'production') {
+        return NextResponse.json({
+          qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=mock-xumm-payload',
+          nextUrl: 'https://xumm.app',
+          uuid: 'mock-uuid'
+        });
+      }
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
     const Sdk = new XummSdk(XUMM_API_KEY, XUMM_API_SECRET);
@@ -80,7 +84,7 @@ export async function POST(request: Request) {
       uuid: payload.uuid
     });
   } catch (error: any) {
-    logger.error({ error: error.message }, 'Error creating Xumm payload');
+    logger.error({ err: error }, 'Error creating Xumm payload');
     return NextResponse.json({ error: 'Failed to create Xumm payload' }, { status: 500 });
   }
 }
