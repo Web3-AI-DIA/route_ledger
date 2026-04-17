@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     logger.info({ transactionId: response.data.id }, 'ChangeNOW transaction created successfully');
     return NextResponse.json(response.data);
   } catch (error: any) {
-    logger.error({ error: error?.response?.data || error.message }, 'Error creating ChangeNOW transaction');
+    logger.error({ err: error?.response?.data || error }, 'Error creating ChangeNOW transaction');
     return NextResponse.json({ error: 'Failed to create cross-chain transaction' }, { status: 500 });
   }
 }

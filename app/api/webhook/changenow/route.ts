@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: 'Webhook processed successfully' });
   } catch (error: any) {
-    logger.error({ error: error.message }, 'Error processing ChangeNOW webhook');
+    logger.error({ err: error }, 'Error processing ChangeNOW webhook');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

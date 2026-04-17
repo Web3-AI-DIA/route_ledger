@@ -201,7 +201,7 @@ export async function GET(request: Request) {
     logger.info({ quoteId: quoteResponse.id }, 'Quote generated and cached successfully');
     return NextResponse.json(quoteResponse);
   } catch (error: any) {
-    logger.error({ error: error?.response?.data || error.message }, 'Error fetching ChangeNOW quote');
+    logger.error({ err: error?.response?.data || error }, 'Error fetching ChangeNOW quote');
     return NextResponse.json({ error: 'Failed to fetch route quote' }, { status: 500 });
   }
 }
