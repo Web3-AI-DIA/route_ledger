@@ -9,6 +9,10 @@ import logger from '@/lib/logger';
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
 const CHANGENOW_API_KEY = process.env.CHANGENOW_API_KEY;
 
+const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+  ? Redis.fromEnv()
+  : null;
+
 const assetMap: Record<string, string> = {
   XRP: 'xrp',
   USDC: 'usdc',
@@ -83,8 +87,7 @@ export async function GET(request: Request) {
   let cachedData: any = null;
 
   try {
-    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-      const redis = Redis.fromEnv();
+    if (redis) {
       cachedData = await redis.get(cacheKey);
     } else {
       const localEntry = localCache.get(cacheKey);
@@ -185,8 +188,7 @@ export async function GET(request: Request) {
 
     // 4. Cache Store
     try {
-      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-        const redis = Redis.fromEnv();
+      if (redis) {
         await redis.set(cacheKey, quoteResponse, { ex: CACHE_TTL });
       } else {
         localCache.set(cacheKey, {
