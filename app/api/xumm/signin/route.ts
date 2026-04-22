@@ -28,6 +28,12 @@ export async function POST(request: Request) {
 
     if (!XUMM_API_KEY || !XUMM_API_SECRET) {
       logger.error('XUMM API keys are not set');
+
+      // Security: Do not return mock data in production if keys are missing
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+      }
+
       return NextResponse.json({
         qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=mock-xumm-signin',
         nextUrl: 'https://xumm.app',
