@@ -1,4 +1,5 @@
 import { auth } from './firebase';
+import logger from './logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -15,38 +16,42 @@ interface FirestoreErrorInfo {
   path: string | null;
   authInfo: {
     userId: string | undefined;
-    email: string | null | undefined;
+    email?: string | null | undefined;
     emailVerified: boolean | undefined;
     isAnonymous: boolean | undefined;
     tenantId: string | null | undefined;
     providerInfo: {
       providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
+      displayName?: string | null;
+      email?: string | null;
+      photoUrl?: string | null;
     }[];
   }
 }
 
+/**
+ * Handles Firestore errors by logging sanitized information and throwing a generic error.
+ * This prevents PII leakage to the client and provides structured logs for Sentry.
+ */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
       })) || []
     },
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // Log the error with structured data for Sentry/CloudWatch
+  logger.error({ err: error, context: errInfo }, 'Firestore operation failed');
+
+  // Throw a generic error to the UI to avoid leaking internal state or PII
+  throw new Error('An error occurred while processing the request.');
 }

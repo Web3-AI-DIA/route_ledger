@@ -12,6 +12,7 @@ import { solana, solanaTestnet, solanaDevnet, bitcoin, ton } from '@reown/appkit
 import { WagmiProvider } from 'wagmi';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { AptosWalletAdapterProvider } from '@aptos-labs/wallet-adapter-react';
+import { useState, useEffect } from 'react';
 
 const queryClient = new QueryClient();
 
@@ -41,7 +42,9 @@ const midnight = {
     default: { name: 'MidnightScan', url: 'https://explorer.testnet.midnight.network' },
   },
   testnet: true,
-} as const;
+  chainNamespace: 'eip155',
+  caipNetworkId: 'eip155:400',
+} as any;
 
 const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche, midnight];
 const solanaNetworks = [solana, solanaTestnet, solanaDevnet];
@@ -52,18 +55,18 @@ const wagmiAdapter = new WagmiAdapter({
   ssr: true
 });
 
-const solanaWeb3JsAdapter = new SolanaAdapter({
-  wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()]
-});
-
-const tronAdapter = new TronAdapter();
-const bitcoinAdapter = new BitcoinAdapter();
-const tonAdapter = new TonAdapter();
-
 if (typeof window !== 'undefined') {
+  const solanaWeb3JsAdapter = new SolanaAdapter({
+    wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()]
+  });
+
+  const tronAdapter = new TronAdapter();
+  const bitcoinAdapter = new BitcoinAdapter();
+  const tonAdapter = new TonAdapter();
+
   createAppKit({
     adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter, bitcoinAdapter, tonAdapter],
-    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton],
+    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton] as any,
     projectId,
     metadata,
     features: {
@@ -73,11 +76,18 @@ if (typeof window !== 'undefined') {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
   return (
     <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <AptosWalletAdapterProvider autoConnect={true}>
-          {children}
+          {mounted ? children : null}
         </AptosWalletAdapterProvider>
       </QueryClientProvider>
     </WagmiProvider>
