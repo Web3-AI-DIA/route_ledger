@@ -24,7 +24,7 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/179229932']
 };
 
-const midnight = {
+const midnight: any = {
   id: 'midnight-testnet',
   name: 'Midnight Testnet',
   network: 'midnight-testnet',
@@ -41,7 +41,7 @@ const midnight = {
     default: { name: 'MidnightScan', url: 'https://explorer.testnet.midnight.network' },
   },
   testnet: true,
-} as const;
+};
 
 const evmNetworks = [mainnet, polygon, arbitrum, optimism, base, bsc, avalanche, midnight];
 const solanaNetworks = [solana, solanaTestnet, solanaDevnet];
@@ -63,7 +63,7 @@ const tonAdapter = new TonAdapter();
 if (typeof window !== 'undefined') {
   createAppKit({
     adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter, bitcoinAdapter, tonAdapter],
-    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton],
+    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton] as unknown as [any, ...any[]],
     projectId,
     metadata,
     features: {

@@ -1,4 +1,5 @@
 import { auth } from './firebase';
+import logger from './logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -28,6 +29,10 @@ interface FirestoreErrorInfo {
   }
 }
 
+/**
+ * Handles Firestore errors by logging detailed information to the server logger
+ * and throwing a sanitized error message to the client to prevent PII leakage.
+ */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -46,7 +51,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     },
     operationType,
     path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  };
+
+  // Log detailed error for server-side debugging (if applicable) or client-side logging
+  // Note: On the client, this will still log to the console if pino is configured to do so.
+  logger.error({ firestoreError: errInfo }, 'Firestore Operation Failed');
+
+  // Throw a generic error to avoid leaking sensitive internal details or PII to the UI
+  throw new Error('An error occurred while accessing the database. Please try again.');
 }
