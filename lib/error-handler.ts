@@ -1,4 +1,5 @@
 import { auth } from './firebase';
+import logger from './logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -28,6 +29,11 @@ interface FirestoreErrorInfo {
   }
 }
 
+/**
+ * Handles Firestore errors by logging detailed information (including PII)
+ * to the server-side logger and throwing a sanitized, generic error message
+ * to prevent sensitive data leakage to the client-side UI.
+ */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -47,6 +53,10 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // Log detailed error information to the server-side logger (securely)
+  logger.error({ ...errInfo }, 'Firestore Error');
+
+  // Throw a sanitized, generic error message to the client
+  throw new Error('An error occurred while processing the request.');
 }
