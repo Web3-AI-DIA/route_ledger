@@ -1,4 +1,5 @@
 import { auth } from './firebase';
+import logger from './logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -28,6 +29,10 @@ interface FirestoreErrorInfo {
   }
 }
 
+/**
+ * Handles Firestore errors by logging detailed information (including PII) to the server-side logger
+ * and throwing a sanitized error message to the client to prevent sensitive data leakage.
+ */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -47,6 +52,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // Log the full error info for debugging (server-side only in Next.js when called from Server Components/Actions)
+  // Note: This function is currently imported in lib/firebase.ts which is mostly client-side.
+  // However, it's a good practice to centralize error handling and ensure we don't throw PII.
+  logger.error({ errInfo }, 'Firestore Error');
+
+  // Throw a sanitized error message to prevent leaking PII or internal paths to the client/UI
+  throw new Error('An error occurred while accessing the database. Please try again later.');
 }
