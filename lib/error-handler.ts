@@ -15,15 +15,15 @@ interface FirestoreErrorInfo {
   path: string | null;
   authInfo: {
     userId: string | undefined;
-    email: string | null | undefined;
+    email?: string | null | undefined;
     emailVerified: boolean | undefined;
     isAnonymous: boolean | undefined;
     tenantId: string | null | undefined;
-    providerInfo: {
+    providerInfo?: {
       providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
+      displayName?: string | null;
+      email?: string | null;
+      photoUrl?: string | null;
     }[];
   }
 }
@@ -33,20 +33,20 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      // PII: email stripped for security
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+        // PII: displayName, email, photoUrl stripped for security
       })) || []
     },
     operationType,
     path
   }
+  // Log sanitized error info for debugging
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  // Throw generic error to prevent PII leakage to client
+  throw new Error('An error occurred while processing the request.');
 }
