@@ -33,20 +33,23 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      email: undefined, // Sanitize PII
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+        displayName: null, // Sanitize PII
+        email: null, // Sanitize PII
+        photoUrl: null // Sanitize PII
       })) || []
     },
     operationType,
     path
   }
+  // Log the sanitized error for debugging
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // Throw a generic error to the client to avoid leaking internal details or PII
+  throw new Error('An error occurred while processing the request.');
 }

@@ -10,12 +10,18 @@ interface AppState {
   aptosAddress: string | null;
   tronAddress: string | null;
   stellarAddress: string | null;
+  bitcoinAddress: string | null;
+  tonAddress: string | null;
+  midnightAddress: string | null;
   connectXrpl: (address: string) => void;
   connectEvm: (address: string) => void;
   connectSolana: (address: string) => void;
   connectAptos: (address: string) => void;
   connectTron: (address: string) => void;
   connectStellar: (address: string) => void;
+  connectBitcoin: (address: string) => void;
+  connectTon: (address: string) => void;
+  connectMidnight: (address: string) => void;
   disconnectAll: () => void;
 
   // Routing State
@@ -37,19 +43,28 @@ export const useAppStore = create<AppState>()(
       aptosAddress: null,
       tronAddress: null,
       stellarAddress: null,
+      bitcoinAddress: null,
+      tonAddress: null,
+      midnightAddress: null,
       connectXrpl: (address) => set({ xrplAddress: address }),
       connectEvm: (address) => set({ evmAddress: address }),
       connectSolana: (address) => set({ solanaAddress: address }),
       connectAptos: (address) => set({ aptosAddress: address }),
       connectTron: (address) => set({ tronAddress: address }),
       connectStellar: (address) => set({ stellarAddress: address }),
+      connectBitcoin: (address) => set({ bitcoinAddress: address }),
+      connectTon: (address) => set({ tonAddress: address }),
+      connectMidnight: (address) => set({ midnightAddress: address }),
       disconnectAll: () => set({ 
         xrplAddress: null, 
         evmAddress: null, 
         solanaAddress: null,
         aptosAddress: null,
         tronAddress: null,
-        stellarAddress: null
+        stellarAddress: null,
+        bitcoinAddress: null,
+        tonAddress: null,
+        midnightAddress: null
       }),
 
       activeQuote: null,
