@@ -6,9 +6,14 @@ import QuoteForm from '@/components/QuoteForm';
 import QuoteReview from '@/components/QuoteReview';
 import TransferStatus from '@/components/TransferStatus';
 import { Layers } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const { activeQuote, activeTransfer } = useAppStore();
+
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
