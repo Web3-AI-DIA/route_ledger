@@ -1,5 +1,4 @@
 import { auth } from './firebase';
-import logger from './logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -48,9 +47,9 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   }
-  // Log the error securely (errInfo is now sanitized)
-  logger.error({ errInfo }, 'Firestore Error');
+  // Log the sanitized error for debugging
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
 
-  // Throw a generic error message to prevent leaking internal details to the client
+  // Throw a generic error to the client to avoid leaking internal details or PII
   throw new Error('An error occurred while processing the request.');
 }

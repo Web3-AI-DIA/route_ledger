@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server';
 import { XummSdk } from 'xumm-sdk';
 import { XummPayloadSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
-import { getClientIp } from '@/lib/ip';
 import logger from '@/lib/logger';
 
 const XUMM_API_KEY = process.env.XUMM_API_KEY;
 const XUMM_API_SECRET = process.env.XUMM_API_SECRET;
 
 export async function POST(request: Request) {
-  const identifier = getClientIp(request);
+  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
 
   try {
     // 1. Rate Limiting
