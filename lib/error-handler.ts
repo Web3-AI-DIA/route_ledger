@@ -1,3 +1,4 @@
+import logger from './logger';
 import { auth } from './firebase';
 
 export enum OperationType {
@@ -10,43 +11,42 @@ export enum OperationType {
 }
 
 interface FirestoreErrorInfo {
-  error: string;
   operationType: OperationType;
   path: string | null;
   authInfo: {
     userId: string | undefined;
-    email: string | null | undefined;
     emailVerified: boolean | undefined;
     isAnonymous: boolean | undefined;
     tenantId: string | null | undefined;
     providerInfo: {
       providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
     }[];
   }
 }
 
+/**
+ * Handles Firestore errors by logging them securely and throwing a sanitized error message.
+ * Prevents PII (like email, display name) from being logged or sent to the client.
+ */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
       })) || []
     },
     operationType,
     path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  };
+
+  // Log the detailed error internally using structured logging
+  // We pass the original error under 'err' key for proper serialization
+  logger.error({ err: error, ...errInfo }, 'Firestore operation failed');
+
+  // Throw a generic error message to avoid leaking internal details or PII to the UI
+  throw new Error('An error occurred while processing the request.');
 }
