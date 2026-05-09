@@ -1,4 +1,5 @@
 import { auth } from './firebase';
+import logger from './logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -15,15 +16,15 @@ interface FirestoreErrorInfo {
   path: string | null;
   authInfo: {
     userId: string | undefined;
-    email: string | null | undefined;
+    email?: string | null | undefined;
     emailVerified: boolean | undefined;
     isAnonymous: boolean | undefined;
     tenantId: string | null | undefined;
-    providerInfo: {
+    providerInfo?: {
       providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
+      displayName?: string | null;
+      email?: string | null;
+      photoUrl?: string | null;
     }[];
   }
 }
@@ -33,20 +34,26 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      // Redact PII from logs and error messages
+      email: undefined,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+        // Redact PII from provider data
+        displayName: undefined,
+        email: undefined,
+        photoUrl: undefined
       })) || []
     },
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // Use structured logger instead of console.error
+  logger.error({ err: error, context: errInfo }, 'Firestore Error');
+
+  // Throw a generic error to the UI to avoid leaking internal info or PII
+  throw new Error('An error occurred while processing the request.');
 }
