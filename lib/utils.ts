@@ -44,3 +44,19 @@ export function isValidAddress(address: string, chain: Chain): boolean {
       return false;
   }
 }
+
+/**
+ * Safely extracts the client's IP address from request headers.
+ * Prioritizes x-real-ip then the first entry in x-forwarded-for.
+ */
+export function getClientIp(request: Request): string {
+  const xRealIp = request.headers.get('x-real-ip');
+  if (xRealIp) return xRealIp;
+
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  if (xForwardedFor) {
+    return xForwardedFor.split(',')[0].trim();
+  }
+
+  return 'anonymous';
+}
