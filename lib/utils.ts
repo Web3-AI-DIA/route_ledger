@@ -6,6 +6,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function getClientIp(headers: Headers): string {
+  const forwardedFor = headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    // The first IP in the list is the actual client IP
+    return forwardedFor.split(',')[0].trim();
+  }
+  return 'anonymous';
+}
+
 export function isValidAddress(address: string, chain: Chain): boolean {
   if (!address) return false;
 
