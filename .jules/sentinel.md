@@ -1,0 +1,4 @@
+## 2025-05-14 - [PII Leakage in Firestore Error Handling]
+**Vulnerability:** The `handleFirestoreError` function was capturing and stringifying the entire `auth.currentUser` object, including sensitive PII like `email`, `displayName`, and `photoUrl`. This data was being logged to the console and thrown as part of an error message, potentially exposing it to client-side UI and external logging systems.
+**Learning:** Improper error handling that includes full user objects can easily leak sensitive information. Even if intended for debugging, such detailed error objects should never reach production logs or client responses.
+**Prevention:** Always sanitize error objects before logging or throwing. Use a centralized error handler that explicitly picks only the necessary non-sensitive fields and returns a generic error message to the client.
