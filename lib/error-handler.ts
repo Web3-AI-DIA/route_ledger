@@ -34,7 +34,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser ? '[REDACTED]' : null,
+      email: auth.currentUser?.email ? '[REDACTED]' : null,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
