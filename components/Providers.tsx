@@ -6,9 +6,7 @@ import { mainnet, polygon, arbitrum, optimism, base, bsc, avalanche } from '@reo
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { SolanaAdapter } from '@reown/appkit-adapter-solana';
 import { TronAdapter } from '@reown/appkit-adapter-tron';
-import { BitcoinAdapter } from '@reown/appkit-adapter-bitcoin';
-import { TonAdapter } from '@reown/appkit-adapter-ton';
-import { solana, solanaTestnet, solanaDevnet, bitcoin, ton } from '@reown/appkit/networks';
+import { solana, solanaTestnet, solanaDevnet } from '@reown/appkit/networks';
 import { WagmiProvider } from 'wagmi';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { AptosWalletAdapterProvider } from '@aptos-labs/wallet-adapter-react';
@@ -57,13 +55,11 @@ const solanaWeb3JsAdapter = new SolanaAdapter({
 });
 
 const tronAdapter = new TronAdapter();
-const bitcoinAdapter = new BitcoinAdapter();
-const tonAdapter = new TonAdapter();
 
 if (typeof window !== 'undefined') {
   createAppKit({
-    adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter, bitcoinAdapter, tonAdapter],
-    networks: [...evmNetworks, ...solanaNetworks, bitcoin, ton],
+    adapters: [wagmiAdapter, solanaWeb3JsAdapter, tronAdapter],
+    networks: [...evmNetworks, ...solanaNetworks],
     projectId,
     metadata,
     features: {

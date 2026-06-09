@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Wallet, Link, Unlink, Loader2, QrCode, Bitcoin, Zap, Moon } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
-import { useAppStore } from '@/lib/store';
 import { useWallet as useAptosWallet } from '@aptos-labs/wallet-adapter-react';
 import { isConnected as isFreighterConnected, getAddress as getFreighterAddress } from '@stellar/freighter-api';
 
@@ -32,6 +31,7 @@ export default function WalletConnect() {
   } = useAppStore();
 
   const [isConnectingXrpl, setIsConnectingXrpl] = useState(false);
+  const [isConnectingStellar, setIsConnectingStellar] = useState(false);
   const [xummQrUrl, setXummQrUrl] = useState<string | null>(null);
   const [xummNextUrl, setXummNextUrl] = useState<string | null>(null);
   
@@ -72,6 +72,7 @@ export default function WalletConnect() {
   }, [isAptosConnected, aptosAccount, connectAptos]);
 
   const handleConnectStellar = async () => {
+    setIsConnectingStellar(true);
     try {
       if (await isFreighterConnected()) {
         const address = await getFreighterAddress();
@@ -85,6 +86,8 @@ export default function WalletConnect() {
       }
     } catch (error) {
       console.error('Failed to connect Stellar', error);
+    } finally {
+      setIsConnectingStellar(false);
     }
   };
 
