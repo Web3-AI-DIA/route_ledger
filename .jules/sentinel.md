@@ -1,0 +1,6 @@
+## 2026-06-12 - PII Leakage in Centralized Firestore Error Handler
+**Vulnerability:** The `handleFirestoreError` function was collecting sensitive user data (email, displayName, photoUrl) from the Firebase Auth state and including it in both console logs (via `console.error`) and thrown Error messages. These thrown errors were stringified JSON objects that could be exposed to the client-side UI and captured by error monitoring tools like Sentry.
+
+**Learning:** Centralized error handlers are high-leverage points but also high-risk. If they are designed to be "helpful" by including as much context as possible, they can easily become conduits for PII leakage if not strictly sanitized. Using `JSON.stringify(errInfo)` as the error message is particularly dangerous as it bypasses simple string-based redaction and encourages leakage to the front-end.
+
+**Prevention:** Always redact sensitive fields explicitly before logging or including in error metadata. Use a structured logger (like Pino) that can handle redaction at the infrastructure level if needed. Never throw detailed internal state as an error message; instead, log the details on the server and throw a generic, user-friendly message to the client.
