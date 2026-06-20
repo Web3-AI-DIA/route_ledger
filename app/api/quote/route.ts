@@ -42,7 +42,8 @@ const CACHE_TTL = 10; // 10 seconds
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  const forwarded = request.headers.get('x-forwarded-for');
+  const identifier = forwarded ? forwarded.split(',')[0].trim() : 'anonymous';
   
   // 1. Rate Limiting
   const { success, remaining, reset } = await checkRateLimit(identifier);
@@ -68,7 +69,7 @@ export async function GET(request: Request) {
 
   if (!validation.success) {
     logger.warn({ errors: validation.error.format() }, 'Invalid quote request');
-    return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
   }
 
   const { sourceAsset, sourceChain, destAsset, destChain, amount } = validation.data;
