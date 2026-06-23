@@ -1,4 +1,4 @@
-import { auth } from './firebase';
+import logger from '@/lib/logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -13,40 +13,32 @@ interface FirestoreErrorInfo {
   error: string;
   operationType: OperationType;
   path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | null | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | null | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
+  userId?: string;
+  metadata?: Record<string, any>;
 }
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+/**
+ * Handles Firestore errors by logging sanitized information and throwing a generic error.
+ * Prevents PII leakage (email, displayName, photoUrl) to logs and the client.
+ */
+export function handleFirestoreError(
+  error: unknown,
+  operationType: OperationType,
+  path: string | null,
+  userId?: string
+) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
+    error: errorMessage,
     operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+    path,
+    userId,
+  };
+
+  // Log the error server-side with metadata
+  // We use a generic message to the client to prevent leaking internal state or PII
+  logger.error({ err: error, metadata: errInfo }, 'Firestore Operation Failed');
+
+  throw new Error('An error occurred while processing the request.');
 }

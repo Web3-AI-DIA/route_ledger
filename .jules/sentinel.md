@@ -1,0 +1,4 @@
+## 2026-06-12 - PII Leakage and Circular Dependency in Error Handler
+**Vulnerability:** Sensitive user information (email, display name, photo URL) was being serialized into error messages and potentially leaked to the client or logs via `JSON.stringify(errInfo)`. Additionally, a circular dependency existed between `lib/firebase.ts` and `lib/error-handler.ts`.
+**Learning:** Importing the `auth` instance directly into the error handler created a circular dependency and tempted the developer to include full user objects in error metadata, leading to PII exposure when those objects were stringified.
+**Prevention:** Redact PII (email, displayName, photoUrl) before logging or throwing errors. Decouple error handlers from specific service instances by passing only necessary, non-sensitive identifiers (like `userId`) as arguments. Use a centralized logger for structured, server-side error tracking instead of throwing raw JSON to the client.
