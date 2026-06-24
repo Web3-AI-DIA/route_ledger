@@ -7,7 +7,8 @@ const XUMM_API_KEY = process.env.XUMM_API_KEY;
 const XUMM_API_SECRET = process.env.XUMM_API_SECRET;
 
 export async function POST(request: Request) {
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const identifier = forwardedFor ? forwardedFor.split(',')[0].trim() : 'anonymous';
 
   try {
     const { success, limit, remaining, reset } = await checkRateLimit(identifier);

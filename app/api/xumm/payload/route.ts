@@ -8,7 +8,8 @@ const XUMM_API_KEY = process.env.XUMM_API_KEY;
 const XUMM_API_SECRET = process.env.XUMM_API_SECRET;
 
 export async function POST(request: Request) {
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const identifier = forwardedFor ? forwardedFor.split(',')[0].trim() : 'anonymous';
 
   try {
     // 1. Rate Limiting
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
 
     if (!validation.success) {
       logger.warn({ errors: validation.error.format() }, 'Invalid Xumm payload request');
-      return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
 
     const { amount, destination, memo } = validation.data;
