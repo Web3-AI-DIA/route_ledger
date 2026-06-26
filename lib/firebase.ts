@@ -22,7 +22,7 @@ export const saveTransferRequest = async (transfer: TransferRequest) => {
   try {
     await setDoc(doc(db, 'transfers', transfer.id), transfer);
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
+    handleFirestoreError(error, OperationType.WRITE, path, auth.currentUser?.uid);
   }
 };
 
@@ -34,7 +34,7 @@ export const getTransferRequest = async (id: string): Promise<TransferRequest | 
       return docSnap.data() as TransferRequest;
     }
   } catch (error) {
-    handleFirestoreError(error, OperationType.GET, path);
+    handleFirestoreError(error, OperationType.GET, path, auth.currentUser?.uid);
   }
   return null;
 };
@@ -47,10 +47,10 @@ export const subscribeToTransfer = (id: string, callback: (transfer: TransferReq
         callback(doc.data() as TransferRequest);
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, path);
+      handleFirestoreError(error, OperationType.GET, path, auth.currentUser?.uid);
     });
   } catch (error) {
-    handleFirestoreError(error, OperationType.GET, path);
+    handleFirestoreError(error, OperationType.GET, path, auth.currentUser?.uid);
     return () => {};
   }
 };
