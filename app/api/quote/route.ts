@@ -42,7 +42,9 @@ const CACHE_TTL = 10; // 10 seconds
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  // SECURITY: Extract the first IP from X-Forwarded-For to mitigate IP spoofing and ensure consistent rate limiting.
+  const identifier = forwardedFor ? forwardedFor.split(',')[0].trim() : 'anonymous';
   
   // 1. Rate Limiting
   const { success, remaining, reset } = await checkRateLimit(identifier);
