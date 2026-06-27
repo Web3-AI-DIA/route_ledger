@@ -35,7 +35,8 @@ const networkMap: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const identifier = forwardedFor ? forwardedFor.split(',')[0].trim() : 'anonymous';
 
   try {
     // 1. Rate Limiting
