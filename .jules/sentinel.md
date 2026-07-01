@@ -1,0 +1,4 @@
+## 2026-06-12 - Remediating PII Leakage in Firestore Error Handler
+**Vulnerability:** The `handleFirestoreError` function in `lib/error-handler.ts` was logging and throwing raw error objects and `authInfo` which contained sensitive user data such as `email`, `displayName`, and `photoURL`. This could leak PII into server logs and to the client-side UI.
+**Learning:** Error handlers that aggregate authentication context for debugging must explicitly redact sensitive fields before serialization. Using a centralized structured logger (like Pino) allows for consistent sanitization and prevents accidental exposure.
+**Prevention:** Implement a strict redaction policy for all PII fields in logging utility functions. Ensure that errors thrown to the client use generic, non-descriptive messages to prevent internal system leakage.
