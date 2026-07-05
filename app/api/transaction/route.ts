@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { TransactionRequestSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { getClientIp } from '@/lib/utils';
 import logger from '@/lib/logger';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
@@ -35,7 +36,7 @@ const networkMap: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  const identifier = getClientIp(request);
 
   try {
     // 1. Rate Limiting
@@ -56,8 +57,9 @@ export async function POST(request: Request) {
     const validation = TransactionRequestSchema.safeParse(body);
 
     if (!validation.success) {
+      // SECURITY: Avoid leaking internal schema structure in error responses
       logger.warn({ errors: validation.error.format() }, 'Invalid transaction request');
-      return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
 
     const { sourceAsset, sourceChain, destAsset, destChain, amount, destAddress } = validation.data;

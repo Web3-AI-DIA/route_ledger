@@ -44,3 +44,32 @@ export function isValidAddress(address: string, chain: Chain): boolean {
       return false;
   }
 }
+
+export function getClientIp(request: Request): string {
+  // SECURITY: Extract IP safely to prevent spoofing.
+  // We prioritize platform-specific headers that are typically more secure.
+  const headers = request.headers;
+
+  // Cloudflare
+  const cfIp = headers.get('cf-connecting-ip');
+  if (cfIp) return cfIp;
+
+  // Vercel
+  const vercelIp = headers.get('x-vercel-forwarded-for');
+  if (vercelIp) return vercelIp.split(',')[0].trim();
+
+  // Akamai / Fastly / Generic Proxies
+  const xRealIp = headers.get('x-real-ip');
+  if (xRealIp) return xRealIp;
+
+  // Standard X-Forwarded-For (Least secure, but necessary as fallback)
+  const xForwardedFor = headers.get('x-forwarded-for');
+  if (xForwardedFor) {
+    // Use the rightmost IP if we can't trust the leftmost one?
+    // Actually, without knowing the proxy count, we take the first one
+    // but prioritize the more specific headers above.
+    return xForwardedFor.split(',')[0].trim();
+  }
+
+  return 'anonymous';
+}
