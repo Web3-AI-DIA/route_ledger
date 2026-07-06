@@ -44,3 +44,32 @@ export function isValidAddress(address: string, chain: Chain): boolean {
       return false;
   }
 }
+
+/**
+ * Securely extracts the client IP address from request headers.
+ * Prioritizes trusted platform headers to prevent IP spoofing.
+ */
+export function getClientIp(request: Request): string {
+  const headers = request.headers;
+
+  // SECURITY: Prioritize trusted proxy headers
+  // 1. Cloudflare
+  const cfConnectingIp = headers.get('cf-connecting-ip');
+  if (cfConnectingIp) return cfConnectingIp;
+
+  // 2. Vercel
+  const vercelForwardedFor = headers.get('x-vercel-forwarded-for');
+  if (vercelForwardedFor) return vercelForwardedFor;
+
+  // 3. Real IP
+  const realIp = headers.get('x-real-ip');
+  if (realIp) return realIp;
+
+  // 4. Forwarded For (take the first one, which is the original client)
+  const forwardedFor = headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  return 'anonymous';
+}
