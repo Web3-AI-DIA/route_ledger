@@ -3,12 +3,14 @@ import { XummSdk } from 'xumm-sdk';
 import { XummPayloadSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
 import logger from '@/lib/logger';
+import { getClientIp } from '@/lib/utils';
 
 const XUMM_API_KEY = process.env.XUMM_API_KEY;
 const XUMM_API_SECRET = process.env.XUMM_API_SECRET;
 
 export async function POST(request: Request) {
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  // SECURITY: Use secure IP extraction to prevent spoofing
+  const identifier = getClientIp(request.headers);
 
   try {
     // 1. Rate Limiting
@@ -29,8 +31,9 @@ export async function POST(request: Request) {
     const validation = XummPayloadSchema.safeParse(body);
 
     if (!validation.success) {
+      // SECURITY: Don't leak internal schema structure to the client
       logger.warn({ errors: validation.error.format() }, 'Invalid Xumm payload request');
-      return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
 
     const { amount, destination, memo } = validation.data;

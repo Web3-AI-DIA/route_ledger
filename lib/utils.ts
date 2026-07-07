@@ -6,6 +6,31 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Safely extracts the client IP address from various headers.
+ * Prioritizes secure platform-specific headers over x-forwarded-for.
+ */
+export function getClientIp(headers: Headers): string {
+  // SECURITY: Prioritize secure platform headers that are set by the provider and cannot be spoofed easily
+  const cfConnectingIp = headers.get('cf-connecting-ip'); // Cloudflare
+  if (cfConnectingIp) return cfConnectingIp;
+
+  const vercelForwardedFor = headers.get('x-vercel-forwarded-for'); // Vercel
+  if (vercelForwardedFor) return vercelForwardedFor;
+
+  const realIp = headers.get('x-real-ip'); // Nginx/proxies
+  if (realIp) return realIp;
+
+  const forwardedFor = headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    // SECURITY: Use the first element in the list, but be aware it could be spoofed
+    // if we are not behind a trusted proxy that overwrites it.
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  return 'anonymous';
+}
+
 export function isValidAddress(address: string, chain: Chain): boolean {
   if (!address) return false;
 
