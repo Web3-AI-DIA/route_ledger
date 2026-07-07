@@ -5,6 +5,7 @@ import { QuoteRequestSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { Redis } from '@upstash/redis';
 import logger from '@/lib/logger';
+import { getClientIp } from '@/lib/utils';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
 const CHANGENOW_API_KEY = process.env.CHANGENOW_API_KEY;
@@ -42,7 +43,8 @@ const CACHE_TTL = 10; // 10 seconds
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  // SECURITY: Use secure IP extraction to prevent spoofing
+  const identifier = getClientIp(request.headers);
   
   // 1. Rate Limiting
   const { success, remaining, reset } = await checkRateLimit(identifier);
@@ -67,8 +69,9 @@ export async function GET(request: Request) {
   });
 
   if (!validation.success) {
+    // SECURITY: Don't leak internal schema structure to the client
     logger.warn({ errors: validation.error.format() }, 'Invalid quote request');
-    return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
   }
 
   const { sourceAsset, sourceChain, destAsset, destChain, amount } = validation.data;
