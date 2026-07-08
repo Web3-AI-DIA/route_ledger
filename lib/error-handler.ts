@@ -1,4 +1,5 @@
-import { auth } from './firebase';
+import { auth } from '@/lib/firebase';
+import logger from '@/lib/logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -33,20 +34,24 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      email: auth.currentUser?.email ? '[REDACTED]' : null,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+        displayName: provider.displayName ? '[REDACTED]' : null,
+        email: provider.email ? '[REDACTED]' : null,
+        photoUrl: provider.photoURL ? '[REDACTED]' : null
       })) || []
     },
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // SECURITY: Use centralized logger and redact PII to prevent leakage in logs
+  logger.error({ err: error, metadata: errInfo }, 'Firestore Error');
+
+  // SECURITY: Throw generic error to client to avoid leaking internal system details
+  throw new Error('An error occurred while processing the request.');
 }
