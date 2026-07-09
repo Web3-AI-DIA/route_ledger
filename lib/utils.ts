@@ -44,3 +44,27 @@ export function isValidAddress(address: string, chain: Chain): boolean {
       return false;
   }
 }
+
+/**
+ * Extracts the client IP address from request headers securely.
+ * // SECURITY: Prioritizes platform-specific headers to mitigate IP spoofing via x-forwarded-for.
+ */
+export function getClientIp(headers: Headers): string {
+  const ipHeaders = [
+    'cf-connecting-ip',
+    'x-vercel-forwarded-for',
+    'x-real-ip',
+  ];
+
+  for (const header of ipHeaders) {
+    const value = headers.get(header);
+    if (value) return value.trim();
+  }
+
+  const forwardedFor = headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  return 'anonymous';
+}
