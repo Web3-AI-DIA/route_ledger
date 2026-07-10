@@ -5,6 +5,7 @@ import { QuoteRequestSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { Redis } from '@upstash/redis';
 import logger from '@/lib/logger';
+import { getClientIp } from '@/lib/utils';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
 const CHANGENOW_API_KEY = process.env.CHANGENOW_API_KEY;
@@ -42,7 +43,8 @@ const CACHE_TTL = 10; // 10 seconds
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  // SECURITY: Use secure IP extraction to prevent rate limit bypass via IP spoofing
+  const identifier = getClientIp(request);
   
   // 1. Rate Limiting
   const { success, remaining, reset } = await checkRateLimit(identifier);

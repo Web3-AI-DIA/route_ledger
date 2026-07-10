@@ -1,4 +1,5 @@
 import { auth } from './firebase';
+import logger from './logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -33,20 +34,25 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      // SECURITY: Redact PII from logs and error objects
+      email: auth.currentUser?.email ? '[REDACTED]' : auth.currentUser?.email,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+        displayName: provider.displayName ? '[REDACTED]' : provider.displayName,
+        email: provider.email ? '[REDACTED]' : provider.email,
+        photoUrl: provider.photoURL ? '[REDACTED]' : provider.photoURL
       })) || []
     },
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // SECURITY: Use centralized structured logging instead of console.error
+  logger.error({ err: error, metadata: errInfo }, 'Firestore operation failed');
+
+  // SECURITY: Throw generic error to prevent internal detail leakage to the client
+  throw new Error('An internal database error occurred');
 }

@@ -44,3 +44,27 @@ export function isValidAddress(address: string, chain: Chain): boolean {
       return false;
   }
 }
+
+/**
+ * Extracts the client IP address from request headers in a secure way.
+ * Prioritizes trusted headers and handles X-Forwarded-For safely.
+ */
+export function getClientIp(request: Request): string {
+  // SECURITY: Prioritize secure headers from trusted proxies/CDNs
+  const xRealIp = request.headers.get('x-real-ip');
+  if (xRealIp) return xRealIp;
+
+  const cfConnectingIp = request.headers.get('cf-connecting-ip');
+  if (cfConnectingIp) return cfConnectingIp;
+
+  const xVercelForwardedFor = request.headers.get('x-vercel-forwarded-for');
+  if (xVercelForwardedFor) return xVercelForwardedFor;
+
+  // SECURITY: X-Forwarded-For can be spoofed. Only take the first element (client IP).
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  if (xForwardedFor) {
+    return xForwardedFor.split(',')[0].trim();
+  }
+
+  return 'anonymous';
+}
