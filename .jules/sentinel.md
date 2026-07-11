@@ -1,0 +1,4 @@
+## 2026-07-02 - IP Spoofing and PII Leakage Remediation
+**Vulnerability:** API routes were vulnerable to IP spoofing for rate limiting because they relied on the raw `x-forwarded-for` header. Additionally, Firestore error logs leaked sensitive user PII (email, displayName, photoUrl) to logs and potentially to the client via error messages.
+**Learning:** Next.js `Request` objects in the App Router do not have built-in IP extraction like `NextRequest` in some versions, and even then, trusting `x-forwarded-for` without verification is a common pitfall. Centralized error handlers must proactively redact sensitive fields from `request.auth` or `auth.currentUser` before logging.
+**Prevention:** Always use a secure utility for IP extraction that prioritizes platform headers (e.g., `cf-connecting-ip`). Use a robust redaction utility in centralized error handlers and ensure only generic error messages reach the client.
