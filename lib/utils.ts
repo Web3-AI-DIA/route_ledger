@@ -6,6 +6,24 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Retrieves the client's IP address from request headers, prioritizing secure platform headers
+ * to prevent IP spoofing.
+ */
+export function getClientIp(request: Request): string {
+  // SECURITY: Prioritize secure platform-injected headers over x-forwarded-for
+  const headers = request.headers;
+
+  const ip =
+    headers.get('cf-connecting-ip') ||        // Cloudflare
+    headers.get('x-vercel-forwarded-for') ||  // Vercel
+    headers.get('x-real-ip') ||               // Nginx/common proxies
+    headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    'anonymous';
+
+  return ip;
+}
+
 export function isValidAddress(address: string, chain: Chain): boolean {
   if (!address) return false;
 
