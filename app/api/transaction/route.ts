@@ -56,8 +56,9 @@ export async function POST(request: Request) {
     const validation = TransactionRequestSchema.safeParse(body);
 
     if (!validation.success) {
+      // SECURITY: Prevent internal schema leakage by logging detailed errors internally and returning a generic response
       logger.warn({ errors: validation.error.format() }, 'Invalid transaction request');
-      return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
 
     const { sourceAsset, sourceChain, destAsset, destChain, amount, destAddress } = validation.data;
