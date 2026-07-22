@@ -6,6 +6,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function getClientIp(request: Request): string {
+  // SECURITY: Prevent IP spoofing by prioritizing x-real-ip and safely parsing x-forwarded-for
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    const parts = forwardedFor.split(',');
+    const firstIp = parts[0]?.trim();
+    if (firstIp) return firstIp;
+  }
+
+  return 'anonymous';
+}
+
 export function isValidAddress(address: string, chain: Chain): boolean {
   if (!address) return false;
 
