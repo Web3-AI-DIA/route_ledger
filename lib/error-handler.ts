@@ -1,4 +1,5 @@
 import { auth } from './firebase';
+import logger from '@/lib/logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -29,24 +30,26 @@ interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  // SECURITY: Redact PII (email, displayName, photoUrl) from error metadata and throw a generic message to prevent leakage
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      email: auth.currentUser?.email ? '[REDACTED]' : auth.currentUser?.email,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+        displayName: provider.displayName ? '[REDACTED]' : provider.displayName,
+        email: provider.email ? '[REDACTED]' : provider.email,
+        photoUrl: provider.photoURL ? '[REDACTED]' : provider.photoURL,
       })) || []
     },
     operationType,
     path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  };
+
+  logger.error({ err: errInfo }, 'Firestore Error');
+  throw new Error('An internal database error occurred');
 }
