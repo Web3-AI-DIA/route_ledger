@@ -1,5 +1,7 @@
 import { auth } from './firebase';
+import logger from '@/lib/logger';
 
+// SECURITY: Redact sensitive fields in error logs/responses to prevent PII leakage and internal schema exposure.
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -33,20 +35,21 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      email: auth.currentUser?.email ? '[REDACTED]' : null,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+        displayName: provider.displayName ? '[REDACTED]' : null,
+        email: provider.email ? '[REDACTED]' : null,
+        photoUrl: provider.photoURL ? '[REDACTED]' : null
       })) || []
     },
     operationType,
     path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  };
+
+  logger.error({ err: error instanceof Error ? error : new Error(String(error)), errInfo }, 'Firestore Error');
+  throw new Error('An internal database error occurred');
 }
