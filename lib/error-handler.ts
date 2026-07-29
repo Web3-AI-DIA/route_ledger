@@ -1,4 +1,5 @@
 import { auth } from './firebase';
+import logger from './logger';
 
 export enum OperationType {
   CREATE = 'create',
@@ -28,25 +29,31 @@ interface FirestoreErrorInfo {
   }
 }
 
+// SECURITY: Redact sensitive PII fields (email, displayName, photoUrl) from error metadata
+// and log internally using Pino instead of throwing detailed internal database contexts to the client.
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const rawEmail = auth.currentUser?.email;
+  const redactedEmail = rawEmail ? '[REDACTED]' : rawEmail;
+
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      email: redactedEmail,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
       providerInfo: auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
+        displayName: provider.displayName ? '[REDACTED]' : null,
+        email: provider.email ? '[REDACTED]' : null,
+        photoUrl: provider.photoURL ? '[REDACTED]' : null,
       })) || []
     },
     operationType,
     path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  };
+
+  logger.error({ err: errInfo }, 'Firestore Error');
+  throw new Error('An internal database error occurred');
 }
