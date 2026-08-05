@@ -1,0 +1,4 @@
+## 2026-07-02 - Remediation of PII Leakage in Error Handlers
+**Vulnerability:** The central Firestore error handling utility was logging and throwing raw serialized `errInfo` objects. These objects included sensitive personal identifiable information (PII) of current users, such as `email`, `displayName`, and `photoUrl`, which were exposed in client-facing stack traces and application-level logging outputs.
+**Learning:** Catching Firestore database errors without specific PII sanitization results in logging internal schemas and sensitive profile fields. Directly throwing these objects causes client-side exposure of private profile information and internal system configurations.
+**Prevention:** Always sanitize or redact fields like `email`, `displayName`, and `photoUrl` in log contexts, log errors securely on the server with a structured centralized logging system, and throw generic, secure error messages to the client to avoid leaking internals.
