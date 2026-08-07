@@ -1,0 +1,4 @@
+## 2026-07-02 - PII Leakage Remediation
+**Vulnerability:** Personal Identifiable Information (PII) including email addresses, display names, and profile photo URLs was leaked in plaintext within Firestore exception handler metadata and logged directly to console output. This detailed metadata was subsequently thrown as an error object to the client-side, exposing internal Firebase database fields and auth state.
+**Learning:** Overly verbose logging and custom error wrapping routines can accidentally bypass safety guidelines by converting complex user authorization states directly into stringified metadata returned to the user interface.
+**Prevention:** Always sanitize/redact sensitive fields from diagnostic logs or internal objects before logging. For standard database operation failures, log the detailed parsed structural info securely to a centralized logger, and return a clean, user-safe generic error message to the client.
