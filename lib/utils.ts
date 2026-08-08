@@ -44,3 +44,17 @@ export function isValidAddress(address: string, chain: Chain): boolean {
       return false;
   }
 }
+
+// SECURITY: Safely extract client IP prioritizing x-real-ip to prevent IP spoofing rate-limit bypasses
+export function getClientIp(headers: Headers): string {
+  const realIp = headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  const forwardedFor = headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    const firstIp = forwardedFor.split(',')[0].trim();
+    if (firstIp) return firstIp;
+  }
+
+  return 'anonymous';
+}
