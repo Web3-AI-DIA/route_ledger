@@ -6,6 +6,24 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function getClientIp(request: Request): string {
+  // SECURITY: Mitigate rate limit bypass / IP spoofing by prioritizing 'x-real-ip' from edge proxy, falling back to 'x-forwarded-for'
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) {
+    return realIp.trim();
+  }
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    const ips = forwardedFor.split(',');
+    if (ips[0]) {
+      return ips[0].trim();
+    }
+  }
+
+  return 'anonymous';
+}
+
 export function isValidAddress(address: string, chain: Chain): boolean {
   if (!address) return false;
 
