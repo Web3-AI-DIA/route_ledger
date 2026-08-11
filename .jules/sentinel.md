@@ -1,0 +1,4 @@
+## 2026-04-10 - PII Leakage in Firestore Error Handler
+**Vulnerability:** Personal Identifiable Information (PII) such as user emails and provider information was being logged in the browser console and thrown in error messages, potentially exposing it to the client-side UI and external logs.
+**Learning:** The error handler was capturing the full `auth.currentUser` object, including sensitive fields, and using `JSON.stringify` on it for both logging and throwing errors. This data was not being filtered based on the execution environment (browser vs. server).
+**Prevention:** Always sanitize error objects before logging them in the browser or exposing them to the UI. Use environment detection (e.g., `typeof window === 'undefined'`) to determine which data is safe to log. Always throw generic, non-informative error messages to the frontend to prevent information leakage.

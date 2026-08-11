@@ -15,11 +15,11 @@ interface FirestoreErrorInfo {
   path: string | null;
   authInfo: {
     userId: string | undefined;
-    email: string | null | undefined;
+    email?: string | null | undefined;
     emailVerified: boolean | undefined;
     isAnonymous: boolean | undefined;
     tenantId: string | null | undefined;
-    providerInfo: {
+    providerInfo?: {
       providerId: string;
       displayName: string | null;
       email: string | null;
@@ -29,24 +29,30 @@ interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const isServer = typeof window === 'undefined';
+
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
+      email: isServer ? auth.currentUser?.email : undefined,
       emailVerified: auth.currentUser?.emailVerified,
       isAnonymous: auth.currentUser?.isAnonymous,
       tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
+      providerInfo: isServer ? auth.currentUser?.providerData.map(provider => ({
         providerId: provider.providerId,
         displayName: provider.displayName,
         email: provider.email,
         photoUrl: provider.photoURL
-      })) || []
+      })) : undefined
     },
     operationType,
     path
   }
+
+  // Log full error for server-side debugging, but sanitize PII for browser logs
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // Always throw a generic error message to prevent leaking details to the UI
+  throw new Error('An error occurred while processing the request.');
 }
