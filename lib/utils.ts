@@ -44,3 +44,14 @@ export function isValidAddress(address: string, chain: Chain): boolean {
       return false;
   }
 }
+
+export function getClientIp(request: Request): string {
+  // SECURITY: Prefer x-real-ip to mitigate IP spoofing; fallback to x-forwarded-for first element or 'anonymous'
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp;
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  return 'anonymous';
+}
