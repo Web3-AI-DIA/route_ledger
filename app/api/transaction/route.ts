@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { TransactionRequestSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { getClientIp } from '@/lib/utils';
 import logger from '@/lib/logger';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
@@ -35,7 +36,8 @@ const networkMap: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  // SECURITY: Extract client IP via getClientIp to mitigate IP spoofing rate limit bypass
+  const identifier = getClientIp(request);
 
   try {
     // 1. Rate Limiting
