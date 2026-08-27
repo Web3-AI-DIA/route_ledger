@@ -57,7 +57,8 @@ export async function POST(request: Request) {
 
     if (!validation.success) {
       logger.warn({ errors: validation.error.format() }, 'Invalid transaction request');
-      return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+      // SECURITY: Omit detailed validation errors from client response to prevent internal schema disclosure
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
 
     const { sourceAsset, sourceChain, destAsset, destChain, amount, destAddress } = validation.data;
