@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { TransactionRequestSchema } from '@/lib/validations';
+import { getClientIp } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/ratelimit';
 import logger from '@/lib/logger';
 
@@ -35,7 +36,7 @@ const networkMap: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  const identifier = getClientIp(request);
 
   try {
     // 1. Rate Limiting
