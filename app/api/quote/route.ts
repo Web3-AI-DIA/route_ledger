@@ -3,6 +3,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { QuoteRequestSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { getClientIp } from '@/lib/utils';
 import { Redis } from '@upstash/redis';
 import logger from '@/lib/logger';
 
@@ -42,7 +43,8 @@ const CACHE_TTL = 10; // 10 seconds
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
+  // SECURITY: Use getClientIp helper to extract client IP accurately and mitigate IP spoofing
+  const identifier = getClientIp(request);
   
   // 1. Rate Limiting
   const { success, remaining, reset } = await checkRateLimit(identifier);
