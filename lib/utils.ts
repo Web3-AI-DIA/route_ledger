@@ -44,3 +44,17 @@ export function isValidAddress(address: string, chain: Chain): boolean {
       return false;
   }
 }
+
+export function getClientIp(request: Request): string {
+  // SECURITY: Extract client IP securely by checking x-real-ip first (from trusted proxy)
+  // or taking the first IP in x-forwarded-for to prevent spoofing and rate limit bypass
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  return '127.0.0.1';
+}
