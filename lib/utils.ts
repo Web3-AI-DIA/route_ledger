@@ -6,6 +6,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// SECURITY: Extracts client IP address safely to mitigate IP spoofing in rate limiting.
+// Prefers x-real-ip set by trusted edge proxy, then the first IP in x-forwarded-for.
+export function getClientIp(request: Request): string {
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    const ips = forwardedFor.split(',');
+    if (ips.length > 0 && ips[0].trim()) {
+      return ips[0].trim();
+    }
+  }
+
+  return 'anonymous';
+}
+
 export function isValidAddress(address: string, chain: Chain): boolean {
   if (!address) return false;
 
