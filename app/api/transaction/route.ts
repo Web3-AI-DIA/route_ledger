@@ -3,6 +3,7 @@ import axios from 'axios';
 import { TransactionRequestSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
 import logger from '@/lib/logger';
+import { isValidAddress } from '@/lib/utils';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
 const CHANGENOW_API_KEY = process.env.CHANGENOW_API_KEY;
@@ -61,6 +62,12 @@ export async function POST(request: Request) {
     }
 
     const { sourceAsset, sourceChain, destAsset, destChain, amount, destAddress } = validation.data;
+
+    // SECURITY: Validate destination address format for target chain to prevent loss of funds or invalid API transactions
+    if (!isValidAddress(destAddress, destChain)) {
+      logger.warn({ destAddress, destChain }, 'Invalid destination address format for target chain');
+      return NextResponse.json({ error: 'Invalid destination address format for target chain' }, { status: 400 });
+    }
 
     if (!CHANGENOW_API_KEY) {
       logger.error('CHANGENOW_API_KEY is not set');
