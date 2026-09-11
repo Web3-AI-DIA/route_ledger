@@ -44,3 +44,16 @@ export function isValidAddress(address: string, chain: Chain): boolean {
       return false;
   }
 }
+
+// SECURITY: Extracts client IP to prevent rate limiting bypass via IP spoofing headers.
+export function getClientIp(request: Request): string {
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  return 'anonymous';
+}
