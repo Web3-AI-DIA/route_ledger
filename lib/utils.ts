@@ -6,6 +6,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// SECURITY: Extract client IP reliably to prevent IP spoofing in rate limit identifiers
+export function getClientIp(request: Request): string {
+  const xRealIp = request.headers.get('x-real-ip');
+  if (xRealIp) return xRealIp.trim();
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  if (xForwardedFor) return xForwardedFor.split(',')[0].trim();
+  return 'anonymous';
+}
+
 export function isValidAddress(address: string, chain: Chain): boolean {
   if (!address) return false;
 
