@@ -2,6 +2,20 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Chain } from "./types"
 
+// SECURITY: Extract client IP safely to prevent rate limit bypass via IP spoofing (prefer x-real-ip or first x-forwarded-for entry).
+export function getClientIp(request: Request): string {
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    const ips = forwardedFor.split(',');
+    if (ips[0]) return ips[0].trim();
+  }
+
+  return 'anonymous';
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
