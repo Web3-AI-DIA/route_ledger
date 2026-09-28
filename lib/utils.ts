@@ -6,6 +6,26 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Extracts the real client IP address from request headers to prevent IP spoofing
+ * and ensure accurate rate limiting.
+ */
+export function getClientIp(request: Request): string {
+  // SECURITY: Prefer x-real-ip header set by edge proxy over user-controlled x-forwarded-for
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) {
+    return realIp.trim();
+  }
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    // x-forwarded-for can be a comma-separated list; the first IP is the original client
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  return 'anonymous';
+}
+
 export function isValidAddress(address: string, chain: Chain): boolean {
   if (!address) return false;
 
