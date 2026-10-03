@@ -6,6 +6,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// SECURITY: Prevent IP spoofing and rate limit bypass by prioritizing x-real-ip or parsing the first client IP in x-forwarded-for
+export function getClientIp(request: Request): string {
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return 'anonymous';
+}
+
 export function isValidAddress(address: string, chain: Chain): boolean {
   if (!address) return false;
 
