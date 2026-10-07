@@ -2,10 +2,30 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
 import logger from '@/lib/logger';
+import { checkRateLimit } from '@/lib/ratelimit';
+import { getClientIp } from '@/lib/utils';
 
 const CHANGENOW_WEBHOOK_SECRET = process.env.CHANGENOW_WEBHOOK_SECRET;
 
 export async function POST(request: Request) {
+  // SECURITY: Rate limit webhook requests to protect endpoint against DoS attacks
+  const identifier = getClientIp(request);
+  const { success, limit, remaining, reset } = await checkRateLimit(identifier);
+  if (!success) {
+    logger.warn({ identifier }, 'Rate limit exceeded for ChangeNOW webhook');
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': (limit ?? 0).toString(),
+          'X-RateLimit-Remaining': (remaining ?? 0).toString(),
+          'X-RateLimit-Reset': (reset ?? 0).toString(),
+        },
+      }
+    );
+  }
+
   try {
     const signature = request.headers.get('x-changenow-signature');
     const bodyText = await request.text();
