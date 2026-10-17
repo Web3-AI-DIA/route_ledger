@@ -5,6 +5,7 @@ import { QuoteRequestSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { getClientIp } from '@/lib/utils';
 import { Redis } from '@upstash/redis';
+import { getClientIp } from '@/lib/utils';
 import logger from '@/lib/logger';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
