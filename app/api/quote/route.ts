@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { QuoteRequestSchema } from '@/lib/validations';
+import { getClientIp } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { getClientIp } from '@/lib/utils';
 import { Redis } from '@upstash/redis';

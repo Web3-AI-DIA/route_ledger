@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { TransactionRequestSchema } from '@/lib/validations';
+import { getClientIp } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { getClientIp } from '@/lib/utils';
 import logger from '@/lib/logger';
