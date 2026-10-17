@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Chain } from "./types"
+import { NextRequest } from "next/server"
 
 // SECURITY: Extract client IP address securely to mitigate rate limit bypass via IP spoofing.
 // Prioritizes x-real-ip set by trusted reverse proxy, or takes the first address from x-forwarded-for.
@@ -57,4 +58,22 @@ export function isValidAddress(address: string, chain: Chain): boolean {
     default:
       return false;
   }
+}
+
+export function getClientIp(request: Request | NextRequest): string {
+  // SECURITY: Prefer the actual edge IP from X-Real-IP to prevent IP spoofing
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) {
+    return realIp.trim();
+  }
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    const ips = forwardedFor.split(',');
+    if (ips.length > 0 && ips[0]) {
+      return ips[0].trim();
+    }
+  }
+
+  return 'anonymous';
 }
