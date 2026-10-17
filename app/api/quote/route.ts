@@ -6,6 +6,7 @@ import { checkRateLimit } from '@/lib/ratelimit';
 import { getClientIp } from '@/lib/utils';
 import { Redis } from '@upstash/redis';
 import logger from '@/lib/logger';
+import { getClientIp } from '@/lib/utils';
 
 const CHANGENOW_API_URL = 'https://api.changenow.io/v2';
 const CHANGENOW_API_KEY = process.env.CHANGENOW_API_KEY;
