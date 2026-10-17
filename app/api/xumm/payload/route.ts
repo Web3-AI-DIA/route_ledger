@@ -4,6 +4,7 @@ import { XummPayloadSchema } from '@/lib/validations';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { getClientIp } from '@/lib/utils';
 import logger from '@/lib/logger';
+import { getClientIp } from '@/lib/utils';
 
 const XUMM_API_KEY = process.env.XUMM_API_KEY;
 const XUMM_API_SECRET = process.env.XUMM_API_SECRET;
