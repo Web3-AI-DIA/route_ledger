@@ -68,8 +68,9 @@ export async function GET(request: Request) {
   });
 
   if (!validation.success) {
+    // SECURITY: Avoid leaking internal schema structure in error responses
     logger.warn({ errors: validation.error.format() }, 'Invalid quote request');
-    return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
   }
 
   const { sourceAsset, sourceChain, destAsset, destChain, amount } = validation.data;
