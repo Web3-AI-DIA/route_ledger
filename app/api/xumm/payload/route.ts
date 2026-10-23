@@ -31,7 +31,8 @@ export async function POST(request: Request) {
 
     if (!validation.success) {
       logger.warn({ errors: validation.error.format() }, 'Invalid Xumm payload request');
-      return NextResponse.json({ error: 'Invalid parameters', details: validation.error.format() }, { status: 400 });
+      // SECURITY: Do not leak internal schema validation details to client error responses
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
 
     const { amount, destination, memo } = validation.data;
