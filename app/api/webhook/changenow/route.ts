@@ -20,17 +20,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
-    // Verify signature using timing-safe comparison
+    // SECURITY: Timing-safe signature comparison to prevent signature length timing side-channel attacks
     const hmac = crypto.createHmac('sha512', CHANGENOW_WEBHOOK_SECRET);
     const expectedSignature = hmac.update(bodyText).digest('hex');
 
     const signatureBuffer = Buffer.from(signature, 'hex');
     const expectedSignatureBuffer = Buffer.from(expectedSignature, 'hex');
 
-    if (
-      signatureBuffer.length !== expectedSignatureBuffer.length ||
-      !crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
-    ) {
+    const isLengthValid = signatureBuffer.length === expectedSignatureBuffer.length;
+    const comparisonBuffer = isLengthValid ? signatureBuffer : expectedSignatureBuffer;
+    const isSignatureValid = crypto.timingSafeEqual(comparisonBuffer, expectedSignatureBuffer) && isLengthValid;
+
+    if (!isSignatureValid) {
       logger.warn({ signature }, 'Invalid ChangeNOW webhook signature');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
