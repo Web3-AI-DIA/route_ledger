@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidAddress } from './utils';
 
 export const ChainSchema = z.enum([
   'XRPL', 
@@ -80,10 +81,24 @@ export const TransactionRequestSchema = z.object({
   destChain: ChainSchema,
   amount: z.string().regex(/^\d+(\.\d+)?$/, 'Invalid amount format'),
   destAddress: z.string().min(1, 'Destination address is required'),
-});
+}).refine(
+  // SECURITY: Validate destination address format against specified blockchain network to prevent invalid or malformed crypto transfers
+  (data) => isValidAddress(data.destAddress, data.destChain),
+  {
+    message: 'Invalid destination address for the specified chain',
+    path: ['destAddress'],
+  }
+);
 
 export const XummPayloadSchema = z.object({
   amount: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Invalid amount format'),
   destination: z.string().min(1, 'Destination is required'),
   memo: z.string().optional(),
-});
+}).refine(
+  // SECURITY: Validate destination address format against XRPL network to prevent invalid payment requests
+  (data) => isValidAddress(data.destination, 'XRPL'),
+  {
+    message: 'Invalid XRPL destination address',
+    path: ['destination'],
+  }
+);
